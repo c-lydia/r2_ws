@@ -1,0 +1,195 @@
+import rclpy
+from rclpy.node import Node 
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist 
+import math 
+
+class RobotControl(Node):
+    def __init__(self):
+        super().__init__('robot_control')
+        self.target_odom_subscriber = self.create_subscription(Odometry, '/target_odom', self.target_odom_callback, 10)
+        self.current_odom_subscriber = self.create_subscription(Odometry, '/current_odom', self.current_odom_callback, 10)
+        self.cmd_vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.cmd_vel_timer = self.create_timer(0.1, self.timer_callback)
+        
+        self.current_odom_x = 0.0
+        self.current_odom_y = 0.0
+        self.current_odom_z = 0.0
+        self.yaw = 0.0
+        
+        self.current_x = 0.0
+        self.current_y = 0.0
+        self.current_z = 0.0
+        self.current_yaw = 0.0
+        
+        self.target_x = 0.0
+        self.target_y = 0.0
+        self.target_z = 0.0
+        self.target_yaw = 0.0
+        
+        self.desired_x = 0.0
+        self.desired_y = 0.0
+        self.desired_yaw = 0.0
+        self.desired_z = 0.0
+        
+        self.k_p = 0.2
+        self.k_d = 0.0
+        self.linear_vel_x_max = 1.0
+        self.linear_vel_y_max = 1.0
+        self.angular_vel_z_max = 0.5
+        
+        self.previous_x = None
+        self.previous_y = None
+        self.previous_yaw = None
+        
+        self.yaw_start = None
+        self.x_start = None
+        self.y_start = None 
+        self.new_target_received = False
+        self.overflow_counter = 0.0
+        
+        self.previous_x_p_error = 0.0
+        self.previous_y_p_error = 0.0
+        self.previous_yaw_p_error = 0.0
+        self.dt = 0.1
+        
+    def target_odom_callback(self, target_odom_msg):
+        self.target_x = target_odom_msg.pose.pose.position.x
+        self.target_y = target_odom_msg.pose.pose.position.y
+        self.target_z = target_odom_msg.pose.pose.position.z 
+        
+        target_q = target_odom_msg.pose.pose.orientation 
+        self.target_yaw = self.calculate_yaw(target_q)
+        self.get_logger().info(f'Receiving: Target x = {self.target_x}, Target y = {self.target_y}, Target yaw = {self.target_yaw}')
+        self.new_target_received = True
+        
+    def current_odom_callback(self, current_odom_msg):
+        self.current_odom_x = current_odom_msg.pose.pose.position.x
+        self.current_odom_y = current_odom_msg.pose.pose.position.y
+        self.current_odom_z = current_odom_msg.pose.pose.position.z
+        
+        current_q = current_odom_msg.pose.pose.orientation 
+        self.yaw = self.calculate_yaw(current_q)
+        self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
+        
+    def timer_callback(self):
+        if not self.new_target_received:
+            cmd_vel_msg = Twist()
+            cmd_vel_msg.linear.x = 0.0
+            cmd_vel_msg.linear.y = 0.0
+            cmd_vel_msg.angular.z = 0.0
+            self.cmd_vel_publisher.publish(cmd_vel_msg)
+            self.get_logger().info('No new target received: publishing zero velocity')
+            return
+        
+        self.desired_x = self.target_x
+        self.desired_y = self.target_y
+        self.desired_z = self.target_z 
+        self.desired_yaw = self.target_yaw 
+        
+        if self.x_start is None:
+            self.x_start = self.current_odom_x
+            
+        if self.y_start is None:
+            self.y_start = self.current_odom_y
+            
+        if self.yaw_start is None:
+            self.yaw_start = self.yaw 
+            self.previous_yaw_odom = self.yaw
+            
+        difference_yaw_odom = self.yaw - self.previous_yaw_odom
+        
+        if abs(difference_yaw_odom) >  math.pi:
+            if difference_yaw_odom > 0.0:
+                self.overflow_counter -= 1
+            else:
+                self.overflow_counter += 1
+        
+        self.current_x = self.current_odom_x
+        self.current_y = self.current_odom_y
+            
+        self.current_x -= self.x_start
+        self.current_y -= self.y_start
+        self.current_yaw = self.normalize_angle(self.yaw - self.yaw_start + 2 * math.pi * self.overflow_counter)
+        
+        current_x_p_error_global = self.desired_x - self.current_x
+        current_y_p_error_global = self.desired_y - self.current_y
+        current_yaw_p_error = self.normalize_angle(self.desired_yaw - self.current_yaw)
+        
+        current_x_p_error_local = math.cos(self.current_yaw) * current_x_p_error_global + math.sin(self.current_yaw) * current_y_p_error_global 
+        current_y_p_error_local = -math.sin(self.current_yaw) * current_x_p_error_global + math.cos(self.current_yaw) * current_y_p_error_global 
+        
+        current_x_d_error = (current_x_p_error_local - self.previous_x_p_error)/self.dt 
+        current_y_d_error = (current_y_p_error_local - self.previous_y_p_error)/self.dt
+        current_yaw_d_error = (current_yaw_p_error - self.previous_yaw_p_error)/self.dt
+        
+        linear_vel_x = self.k_p * current_x_p_error_local + self.k_d * current_x_d_error
+        linear_vel_y = self.k_p * current_y_p_error_local + self.k_d * current_y_d_error
+        angular_vel_z = self.k_p * current_yaw_p_error + self.k_d * current_yaw_d_error
+        
+        self.previous_x = self.current_x
+        self.previous_y = self.current_y
+        self.previous_yaw = self.current_yaw
+        
+        self.previous_x_p_error = current_x_p_error_local
+        self.previous_y_p_error = current_y_p_error_local
+        self.previous_yaw_p_error = current_yaw_p_error
+        
+        delta_yaw = self.current_yaw - self.previous_yaw
+        
+        if angular_vel_z > self.angular_vel_z_max:
+            angular_vel_z = self.angular_vel_z_max
+        elif angular_vel_z < -self.angular_vel_z_max:
+            angular_vel_z = -self.angular_vel_z_max
+        else:
+            pass 
+        
+        if linear_vel_x > self.linear_vel_x_max:
+            linear_vel_x = self.linear_vel_x_max
+        elif linear_vel_x < -self.linear_vel_x_max:
+            linear_vel_x = -self.linear_vel_x_max
+        else:
+            pass 
+        
+        if linear_vel_y > self.linear_vel_y_max:
+            linear_vel_y = self.linear_vel_y_max
+        elif linear_vel_y < -self.linear_vel_y_max:
+            linear_vel_y = -self.linear_vel_y_max
+        else:
+            pass
+        
+        cmd_vel_msg = Twist()
+        cmd_vel_msg.linear.x = linear_vel_x
+        cmd_vel_msg.linear.y = linear_vel_y
+        cmd_vel_msg.angular.z = angular_vel_z
+        
+        self.cmd_vel_publisher.publish(cmd_vel_msg)
+        self.get_logger().info(f'Publishing: Vx = {cmd_vel_msg.linear.x}, Vy = {cmd_vel_msg.linear.y}, Wz = {cmd_vel_msg.angular.z}')
+        
+    def calculate_yaw(self, q):
+        siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+        cosy_sinp = 1 - 2 * (q.y**2 + q.z**2)
+        return math.atan2(siny_cosp, cosy_sinp)
+    
+    def counter(self, w_z):
+        if w_z > 2 * math.pi:
+            return -1
+        elif w_z < -2 * math.pi:
+            return 1
+        else:
+            return 0 
+        
+    def normalize_angle(self, a):
+        return math.atan2(math.sin(a), math.cos(a))
+
+        
+def main():
+    rclpy.init()
+    robot_control = RobotControl()
+    rclpy.spin(robot_control)
+    robot_control.destroy_node()
+    rclpy.shutdown()
+    
+if __name__ == '__main__':
+    main()
+    
