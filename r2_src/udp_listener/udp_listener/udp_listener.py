@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
-from custom_messages.msg import TargetSetter
+from custom_messages.msg import TargetSetter, UpdateWaypoint, Waypoint
 import socket
 import struct
 import time
@@ -10,8 +10,9 @@ class UdpListener(Node):
     def __init__(self):
         super().__init__('udp_listener')
 
-        self.raw_odom_publisher = self.create_publisher(Odometry, '/raw_target_odom', 10)
+        self.wp_publisher = self.create_publisher(Waypoint, '/waypoint', 10)
         self.target_setter_publisher = self.create_publisher(TargetSetter, '/target_info', 10)
+        self.update_wp_publisher  = self.create_publisher(UpdateWaypoint, '/update_wp', 10)
 
         self.udp_timer = self.create_timer(0.1, self.udp_timer_callback)
 
@@ -73,6 +74,7 @@ class UdpListener(Node):
             )
 
         processed = self.process_data(data)
+        
         if processed:
             self.last_packet_time = now
 
@@ -103,39 +105,59 @@ class UdpListener(Node):
             self.get_logger().info('Connection terminated')
 
     def process_data(self, data):
-        if len(data) < 4:
-            self.get_logger().warn('Packet too small')
+        data_len = len(data)
+        
+        if data_len == 25:
+            edit_flag = bool(data[0])
+            index, version = struct.unpack_from('<II', data, 1)  # uint32 little endian
+            x, y = struct.unpack_from('<dd', data, 9)           # float64 little endian
+
+            update_msg = UpdateWaypoint()
+            update_msg.edited = edit_flag
+            update_msg.index = index
+            update_msg.version = version
+            update_msg.x = x
+            update_msg.y = y
+
+            self.update_wp_publisher.publish(update_msg)
+            self.get_logger().info(f'Edit received: idx={index}, ver={version}, x={x}, y={y}, edit={edit_flag}')
+            return True
+        elif data_len >= 12:
+            if data_len < 12:
+                self.get_logger().warn('Packet too small for waypoint data')
+                return False
+
+            offset = 0
+            magic, count, plan_id = struct.unpack_from('<iii', data, offset)
+            offset += 12
+
+            if magic != 0xAA:
+                self.get_logger().warn(f'Invalid magic: {hex(magic)}')
+                return False
+
+            expected_len = 12 + count * 16
+            if len(data) != expected_len:
+                self.get_logger().warn(f'Packet size mismatch: expected {expected_len}, got {len(data)}')
+                return False
+
+            for i in range(count):
+                x, y = struct.unpack_from('<dd', data, offset)
+                offset += 16
+
+                wp_msg = Waypoint()
+                wp_msg.index = count
+                wp_msg.version = plan_id
+                wp_msg.pose.pose.position.x = x
+                wp_msg.pose.pose.position.y = y
+                wp_msg.pose.pose.position.z = 0.0
+
+                self.wp_publisher.publish(wp_msg)
+                self.get_logger().info(f'WP[{i}] ({x}, {y})')
+
+            return True
+        else:
+            self.get_logger().warn(f'Unknown packet length: {data_len}')
             return False
-
-        offset = 0
-
-        magic, count = struct.unpack_from('<HH', data, offset)
-        offset += 4
-
-        if magic != 0xAA:
-            self.get_logger().warn(f'Invalid magic: {hex(magic)}')
-            return False
-
-        expected_len = 4 + count * 16
-        if len(data) != expected_len:
-            self.get_logger().warn(
-                f'Packet size mismatch: expected {expected_len}, got {len(data)}'
-            )
-            return False
-
-        for i in range(count):
-            x, y = struct.unpack_from('<dd', data, offset)
-            offset += 16
-
-            msg = Odometry()
-            msg.pose.pose.position.x = x
-            msg.pose.pose.position.y = y
-            msg.pose.pose.position.z = 0.0
-
-            self.raw_odom_publisher.publish(msg)
-            self.get_logger().info(f'WP[{i}] ({x:.3f}, {y:.3f})')
-
-        return True
 
 def main():
     rclpy.init()

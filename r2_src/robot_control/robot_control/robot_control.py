@@ -2,14 +2,16 @@ import rclpy
 from rclpy.node import Node 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist 
+from custom_messages.msg import UpdateWaypoint, Waypoint
 import math 
 
 class RobotControl(Node):
     def __init__(self):
         super().__init__('robot_control')
-        self.target_odom_subscriber = self.create_subscription(Odometry, '/target_odom', self.target_odom_callback, 10)
+        self.wp_subscriber = self.create_subscription(Waypoint, '/waypoint', self.waypoint_callback, 10)
         self.current_odom_subscriber = self.create_subscription(Odometry, '/current_odom', self.current_odom_callback, 10)
         self.cmd_vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.update_subscriber = self.create_subscription(UpdateWaypoint, '/update_wp', self.update_wp_callback, 10)
         self.cmd_vel_timer = self.create_timer(0.1, self.timer_callback)
         
         self.current_odom_x = 0.0
@@ -22,10 +24,10 @@ class RobotControl(Node):
         self.current_z = 0.0
         self.current_yaw = 0.0
         
-        self.target_x = 0.0
-        self.target_y = 0.0
-        self.target_z = 0.0
-        self.target_yaw = 0.0
+        self.waypoint_x = 0.0
+        self.waypoint_y = 0.0
+        self.waypoint_z = 0.0
+        self.waypoint_yaw = 0.0
         
         self.desired_x = 0.0
         self.desired_y = 0.0
@@ -56,16 +58,18 @@ class RobotControl(Node):
         self.active_target = None
         self.goal_tolerance = 0.05
         
-    def target_odom_callback(self, target_odom_msg):
-        self.target_x = target_odom_msg.pose.pose.position.x
-        self.target_y = target_odom_msg.pose.pose.position.y
-        self.target_yaw = math.atan2(self.target_y, self.target_x)
+    def waypoint_callback(self, wp_msg):
+        self.waypoint_index = wp_msg.index
+        self.waypoint_version = wp_msg.version
+        self.waypoint_x = wp_msg.x
+        self.waypoint_y = wp_msg.y
+        self.waypoint_yaw = math.atan2(self.waypoint_y, self.waypoint_x)
         
-        self.get_logger().info(f'Receiving: Target x = {self.target_x}, Target y = {self.target_y}, Target yaw = {self.target_yaw}')
+        self.get_logger().info(f'Receiving: Waypoint x = {self.waypoint_x}, Waypoint y = {self.waypoint_y}, Waypoint yaw = {self.waypoint_yaw}')
         self.new_target_received = True
         
-        self.waypoint_queue.append((self.target_x, self.target_y, self.target_yaw))
-        self.get_logger().info(f'New waypoint added: ({self.target_x}, {self.target_y}, {self.target_yaw})')
+        self.waypoint_queue.append((self.waypoint_x, self.waypoint_y, self.waypoint_yaw))
+        self.get_logger().info(f'New waypoint added: ({self.waypoint_x}, {self.waypoint_y}, {self.waypoint_yaw})')
         
     def current_odom_callback(self, current_odom_msg):
         self.current_odom_x = current_odom_msg.pose.pose.position.x
@@ -76,6 +80,27 @@ class RobotControl(Node):
         self.yaw = self.calculate_yaw(current_q)
         self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
         
+    def update_wp_callback(self, update_wp_msg):
+        if not update_wp_msg.edited:
+            return
+
+        updated_index = update_wp_msg.index
+        updated_version = update_wp_msg.version
+        updated_x = update_wp_msg.x
+        updated_y = update_wp_msg.y
+        updated_yaw = math.atan2(updated_y, updated_x)
+
+        if self.active_target and self.waypoint_index == updated_index and self.waypoint_version == updated_version:
+            self.active_target = (updated_x, updated_y, updated_yaw)
+            self.get_logger().info(f'Active target updated: ({updated_x}, {updated_y}, {updated_yaw})')
+            return
+
+        for i, (x, y, yaw) in enumerate(self.waypoint_queue):
+            if i == updated_index:  # or store index/version in queue for proper mapping
+                self.waypoint_queue[i] = (updated_x, updated_y, updated_yaw)
+                self.get_logger().info(f'Waypoint {updated_index} in queue updated: ({updated_x}, {updated_y}, {updated_yaw})')
+                break
+
     def update_active_target(self):
         if not self.active_target and self.waypoint_queue:
             self.active_target = self.waypoint_queue.pop(0)

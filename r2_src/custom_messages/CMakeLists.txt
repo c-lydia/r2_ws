@@ -28,6 +28,8 @@ set(msg_files
   "msg/PwmCommand.msg"
   "msg/ServoCommand.msg"
   "msg/TargetSetter.msg"
+  "msg/UpdateWaypoint.msg"
+  "msg/Waypoint.msg"
 )
 
 # Generate interfaces
