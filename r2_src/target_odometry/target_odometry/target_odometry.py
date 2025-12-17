@@ -21,17 +21,13 @@ class TargetOdometry(Node):
         
         x = raw_target_odom_msg.pose.pose.position.x 
         y = raw_target_odom_msg.pose.pose.position.y 
-        z = raw_target_odom_msg.pose.pose.position.z 
-        q = raw_target_odom_msg.pose.pose.orientation
         
         target_odom_msg = Odometry()
         target_odom_msg.pose.pose.position.x = x 
         target_odom_msg.pose.pose.position.y = y
-        target_odom_msg.pose.pose.position.z = z
-        target_odom_msg.pose.pose.orientation = q 
         
         self.target_odom_publisher.publish(target_odom_msg)
-        print(f'Publishing: position = ({x}, {y}, {z}), orientation = {q}')
+        print(f'Publishing: position = ({x}, {y})')
         
 def main():
     rclpy.init()

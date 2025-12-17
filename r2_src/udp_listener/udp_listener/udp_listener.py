@@ -3,9 +3,8 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from custom_messages.msg import TargetSetter
 import socket
-import json
+import struct
 import time
-
 
 class UdpListener(Node):
     def __init__(self):
@@ -17,6 +16,7 @@ class UdpListener(Node):
         self.udp_timer = self.create_timer(0.1, self.udp_timer_callback)
 
         self.receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        
         try:
             self.receive_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
         except Exception as e:
@@ -47,12 +47,6 @@ class UdpListener(Node):
             self.get_logger().warn(f'Error receiving data: {e}')
             return
 
-        try:
-            msg = data.decode('utf-8')
-        except Exception as e:
-            self.get_logger().warn(f'Failed to decode incoming packet: {e}')
-            return
-
         new_ip = addr[0]
         new_port = addr[1]
 
@@ -71,18 +65,14 @@ class UdpListener(Node):
 
             target_msg = TargetSetter()
             target_msg.ip = self.current_target_ip
-            target_msg.port = int(self.current_target_port) if isinstance(self.current_target_port, int) else self.current_target_port
+            target_msg.port = int(self.current_target_port)
             self.target_setter_publisher.publish(target_msg)
 
-            self.get_logger().info(f'Locked control to {self.current_target_ip}:{self.current_target_port}')
+            self.get_logger().info(
+                f'Locked control to {self.current_target_ip}:{self.current_target_port}'
+            )
 
-        try:
-            json_data = json.loads(msg)
-        except json.JSONDecodeError:
-            self.get_logger().warn('Invalid JSON received')
-            return
-
-        processed = self.process_data(json_data)
+        processed = self.process_data(data)
         if processed:
             self.last_packet_time = now
 
@@ -112,43 +102,40 @@ class UdpListener(Node):
             self.target_setter_publisher.publish(terminate_msg)
             self.get_logger().info('Connection terminated')
 
-    def process_data(self, json_data):
-        """
-        Validate JSON fields, publish Odometry, return True if processed successfully.
-        """
-        required_keys = ['ID', 'X', 'Y', 'qX', 'qY', 'qZ', 'qW']
-        for k in required_keys:
-            if k not in json_data:
-                self.get_logger().warn(f'Missing key {k} in JSON')
-                return False
-
-        try:
-            x = float(json_data['X'])
-            y = float(json_data['Y'])
-            q_x = float(json_data['qX'])
-            q_y = float(json_data['qY'])
-            q_z = float(json_data['qZ'])
-            q_w = float(json_data['qW'])
-            id_val = json_data['ID']
-        except Exception as e:
-            self.get_logger().warn(f'Non-numeric JSON fields: {e}')
+    def process_data(self, data):
+        if len(data) < 4:
+            self.get_logger().warn('Packet too small')
             return False
 
-        raw_target_odom_msg = Odometry()
-        raw_target_odom_msg.pose.pose.position.x = x
-        raw_target_odom_msg.pose.pose.position.y = y
-        raw_target_odom_msg.pose.pose.position.z = 0.0
+        offset = 0
 
-        raw_target_odom_msg.pose.pose.orientation.x = q_x
-        raw_target_odom_msg.pose.pose.orientation.y = q_y
-        raw_target_odom_msg.pose.pose.orientation.z = q_z
-        raw_target_odom_msg.pose.pose.orientation.w = q_w
+        magic, count = struct.unpack_from('<HH', data, offset)
+        offset += 4
 
-        self.raw_odom_publisher.publish(raw_target_odom_msg)
-        self.get_logger().info(f'ID: {id_val}, position: ({x}, {y}, 0.0), orientation: ({q_x}, {q_y}, {q_z}, {q_w})')
+        if magic != 0xAA:
+            self.get_logger().warn(f'Invalid magic: {hex(magic)}')
+            return False
+
+        expected_len = 4 + count * 16
+        if len(data) != expected_len:
+            self.get_logger().warn(
+                f'Packet size mismatch: expected {expected_len}, got {len(data)}'
+            )
+            return False
+
+        for i in range(count):
+            x, y = struct.unpack_from('<dd', data, offset)
+            offset += 16
+
+            msg = Odometry()
+            msg.pose.pose.position.x = x
+            msg.pose.pose.position.y = y
+            msg.pose.pose.position.z = 0.0
+
+            self.raw_odom_publisher.publish(msg)
+            self.get_logger().info(f'WP[{i}] ({x:.3f}, {y:.3f})')
 
         return True
-
 
 def main():
     rclpy.init()
@@ -160,7 +147,6 @@ def main():
     finally:
         udp_listener.destroy_node()
         rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

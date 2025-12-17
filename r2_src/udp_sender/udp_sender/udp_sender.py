@@ -3,7 +3,7 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from custom_messages.msg import TargetSetter 
 import socket
-import json
+import struct
 import math 
 
 class UdpSender(Node):
@@ -45,12 +45,29 @@ class UdpSender(Node):
 
         if has_moved(self.current_odom, self.prev_current_odom):
             try:
-                app_msg = json.dumps(self.current_odom).encode('utf-8')
-                self.sender_socket.sendto(app_msg, (self.current_target_ip, self.current_target_port))
-                self.get_logger().info(f'Sent message {app_msg} to {self.current_target_ip}:{self.current_target_port}')
+                app_msg = struct.pack(
+                    '<ddd',
+                    self.current_odom['x'],
+                    self.current_odom['y'],
+                    self.current_odom['yaw']
+                )
+
+                self.sender_socket.sendto(
+                    app_msg,
+                    (self.current_target_ip, self.current_target_port)
+                )
+
+                self.get_logger().info(
+                    f"Sent odom x={self.current_odom['x']:.3f}, "
+                    f"y={self.current_odom['y']:.3f}, "
+                    f"yaw={self.current_odom['yaw']:.3f}"
+                )
+
                 self.prev_current_odom = self.current_odom.copy()
+
             except Exception as e:
-                self.get_logger().info(f'Error sending UDP data: {e}')
+                self.get_logger().warn(f'Error sending UDP data: {e}')
+
 
     def calculate_yaw(self, q):
         siny_cosp = 2 * (q.w * q.z + q.x * q.y)

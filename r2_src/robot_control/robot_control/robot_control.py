@@ -45,7 +45,6 @@ class RobotControl(Node):
         self.yaw_start = None
         self.x_start = None
         self.y_start = None 
-        self.new_target_received = False
         self.overflow_counter = 0.0
         
         self.previous_x_p_error = 0.0
@@ -53,15 +52,20 @@ class RobotControl(Node):
         self.previous_yaw_p_error = 0.0
         self.dt = 0.1
         
+        self.waypoint_queue = []
+        self.active_target = None
+        self.goal_tolerance = 0.05
+        
     def target_odom_callback(self, target_odom_msg):
         self.target_x = target_odom_msg.pose.pose.position.x
         self.target_y = target_odom_msg.pose.pose.position.y
-        self.target_z = target_odom_msg.pose.pose.position.z 
+        self.target_yaw = math.atan2(self.target_y, self.target_x)
         
-        target_q = target_odom_msg.pose.pose.orientation 
-        self.target_yaw = self.calculate_yaw(target_q)
         self.get_logger().info(f'Receiving: Target x = {self.target_x}, Target y = {self.target_y}, Target yaw = {self.target_yaw}')
         self.new_target_received = True
+        
+        self.waypoint_queue.append((self.target_x, self.target_y, self.target_yaw))
+        self.get_logger().info(f'New waypoint added: ({self.target_x}, {self.target_y}, {self.target_yaw})')
         
     def current_odom_callback(self, current_odom_msg):
         self.current_odom_x = current_odom_msg.pose.pose.position.x
@@ -72,20 +76,27 @@ class RobotControl(Node):
         self.yaw = self.calculate_yaw(current_q)
         self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
         
+    def update_active_target(self):
+        if not self.active_target and self.waypoint_queue:
+            self.active_target = self.waypoint_queue.pop(0)
+            self.get_logger().info(f'Active target: {self.active_target}')
+
     def timer_callback(self):
-        if not self.new_target_received:
+        self.update_active_target()
+        
+        if not self.active_target:
             cmd_vel_msg = Twist()
             cmd_vel_msg.linear.x = 0.0
             cmd_vel_msg.linear.y = 0.0
             cmd_vel_msg.angular.z = 0.0
             self.cmd_vel_publisher.publish(cmd_vel_msg)
-            self.get_logger().info('No new target received: publishing zero velocity')
+            self.get_logger().info('No active target: publishing zero velocity')
             return
         
-        self.desired_x = self.target_x
-        self.desired_y = self.target_y
-        self.desired_z = self.target_z 
-        self.desired_yaw = self.target_yaw 
+        self.desired_x = self.active_target[0]
+        self.desired_y = self.active_target[1]
+        self.desired_yaw = self.active_target[2]
+        self.desired_z = 0.0
         
         if self.x_start is None:
             self.x_start = self.current_odom_x
@@ -123,6 +134,18 @@ class RobotControl(Node):
         current_y_d_error = (current_y_p_error_local - self.previous_y_p_error)/self.dt
         current_yaw_d_error = (current_yaw_p_error - self.previous_yaw_p_error)/self.dt
         
+        difference_yaw = self.desired_yaw - self.current_yaw
+        
+        if self.reached_active_target() and abs(difference_yaw) < self.goal_tolerance:
+            self.get_logger().info(f'Reached target: {self.active_target}')
+            
+            if self.waypoint_queue:
+                self.active_target = self.waypoint_queue.pop(0)
+                self.get_logger().info(f'Next target: {self.active_target}')
+            else:
+                self.active_target = None
+                self.get_logger().info('All waypoints completed')
+        
         linear_vel_x = self.k_p * current_x_p_error_local + self.k_d * current_x_d_error
         linear_vel_y = self.k_p * current_y_p_error_local + self.k_d * current_y_d_error
         angular_vel_z = self.k_p * current_yaw_p_error + self.k_d * current_yaw_d_error
@@ -134,8 +157,6 @@ class RobotControl(Node):
         self.previous_x_p_error = current_x_p_error_local
         self.previous_y_p_error = current_y_p_error_local
         self.previous_yaw_p_error = current_yaw_p_error
-        
-        delta_yaw = self.current_yaw - self.previous_yaw
         
         if angular_vel_z > self.angular_vel_z_max:
             angular_vel_z = self.angular_vel_z_max
@@ -181,7 +202,16 @@ class RobotControl(Node):
         
     def normalize_angle(self, a):
         return math.atan2(math.sin(a), math.cos(a))
-
+    
+    def reached_active_target(self):
+        if not self.active_target:
+            return False
+        
+        dx = self.desired_x - self.current_x
+        dy = self.desired_y - self.current_y
+        
+        distance = math.hypot(dx, dy)
+        return distance < self.goal_tolerance
         
 def main():
     rclpy.init()
