@@ -96,7 +96,7 @@ class RobotControl(Node):
             return
 
         for i, (x, y, yaw) in enumerate(self.waypoint_queue):
-            if i == updated_index:  # or store index/version in queue for proper mapping
+            if i == updated_index:
                 self.waypoint_queue[i] = (updated_x, updated_y, updated_yaw)
                 self.get_logger().info(f'Waypoint {updated_index} in queue updated: ({updated_x}, {updated_y}, {updated_yaw})')
                 break
