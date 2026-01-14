@@ -13,7 +13,6 @@ class CurrentOdometry(Node):
         self.can_driver_subscriber = self.create_subscription(EncoderFeedback, '/encoder_feedback', self.encoder_feedback_callback, 10)
         self.sensor_imu_subscriber = self.create_subscription(Imu, '/imu/data_raw', self.sensor_imu_callback, 10)
         self.current_odom_publisher = self.create_publisher(Odometry, '/current_odom', 10)
-        self.offset_publisher = self.create_publisher(Odometry, '/frame_offset', 10)
         self.current_yaw = 0.0
         self.prev_yaw = 0.0
         self.yaw_start = None
@@ -42,7 +41,11 @@ class CurrentOdometry(Node):
         self.theta = None
         self.dt = 0.0
         self.previous_time = 0.0
-        
+        self.start_checked = False
+        self.init_x = None
+        self.init_y = None
+        self.yaw_flip_checked = False
+
     def sensor_imu_callback(self, sensor_msg):
         q_x = sensor_msg.orientation.x 
         q_y = sensor_msg.orientation.y 
@@ -64,7 +67,7 @@ class CurrentOdometry(Node):
             else:
                 self.overflow_counter += 1
             
-        self.current_yaw = ((self.yaw - self.yaw_start) + 2 * math.pi * self.overflow_counter) + self.frame_offset_yaw
+        self.current_yaw = (self.yaw - self.yaw_start) + 2 * math.pi * self.overflow_counter
         self.prev_yaw = self.current_yaw 
         
         self.get_logger().info(f"Motor speeds: {self.motor_vel}, current_yaw = {self.current_yaw}")
@@ -82,8 +85,34 @@ class CurrentOdometry(Node):
         w_z = (self.R * (-self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3]))/(2 * (self.l_x + self.l_y))
         
         v_x_global = math.cos(self.current_yaw) * linear_vel_x_local - math.sin(self.current_yaw) * linear_vel_y_local
-        v_y_gloabl = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local
+        v_y_global = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local
         
+        if not self.yaw_flip_checked:
+            speed = math.hypot(v_x_global, v_y_global)
+
+            if speed > 0.05:  # robot is clearly moving
+                vel_angle = math.atan2(v_y_global, v_x_global)
+                yaw_angle = self.current_yaw
+
+                angle_error = math.atan2(
+                    math.sin(vel_angle - yaw_angle),
+                    math.cos(vel_angle - yaw_angle)
+                )
+
+                # flipped ≈ 180°
+                if abs(abs(angle_error) - math.pi) < math.pi / 6:
+                    self.get_logger().warn("Yaw frame flipped — correcting by π")
+                    self.yaw_start += math.pi
+
+                    self.current_yaw = self.normalize_angle(
+                        self.yaw - self.yaw_start + 2 * math.pi * self.overflow_counter
+                    )
+                    
+                v_x_global = math.cos(self.current_yaw) * linear_vel_x_local - math.sin(self.current_yaw) * linear_vel_y_local
+                v_y_global = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local
+
+                self.yaw_flip_checked = True
+
         current_time = time.perf_counter()
         
         if self.previous_time == 0.0:
@@ -93,7 +122,7 @@ class CurrentOdometry(Node):
         self.dt = current_time - self.previous_time
         
         self.x += v_x_global * self.dt 
-        self.y += v_y_gloabl * self.dt
+        self.y += v_y_global * self.dt
         
         if self.x_start is None:
             self.x_start = self.x
@@ -102,9 +131,13 @@ class CurrentOdometry(Node):
         if self.y_start is None:
             self.y_start = self.y
             self.frame_offset_y = self.offset_y
-               
-        self.x_odom = (self.x - self.x_start) + self.frame_offset_x
-        self.y_odom = (self.y - self.y_start) + self.frame_offset_y
+            
+        if self.init_x is None:
+            self.init_x = self.x
+            self.init_y = self.y
+   
+        self.x_odom = (self.x - self.x_start) - self.frame_offset_x
+        self.y_odom = (self.y - self.y_start) - self.frame_offset_y
         self.z_orientation += w_z * self.dt 
         
         self.previous_time = current_time
@@ -117,7 +150,7 @@ class CurrentOdometry(Node):
         
         current_odom_msg = Odometry()
         current_odom_msg.twist.twist.linear.x = v_x_global
-        current_odom_msg.twist.twist.linear.y = v_y_gloabl
+        current_odom_msg.twist.twist.linear.y = v_y_global
         current_odom_msg.twist.twist.angular.z = w_z
         
         current_odom_msg.pose.pose.position.x = self.x_odom
@@ -126,7 +159,7 @@ class CurrentOdometry(Node):
         
         self.current_odom_publisher.publish(current_odom_msg)
         
-        self.get_logger().info(f'Publishing: Velocity = ({v_x_global}, {v_y_gloabl}, {w_z}), Position = ({self.x_odom}, {self.y_odom}), Orientation = {self.theta}')
+        self.get_logger().info(f'Publishing: Velocity = ({v_x_global}, {v_y_global}, {w_z}), Position = ({self.x_odom}, {self.y_odom}), Orientation = {self.theta}')
         
     def calculate_yaw(self, q_x, q_y, q_z, q_w):
         siny_cosp = 2 * (q_w * q_z + q_x * q_y)
@@ -140,6 +173,9 @@ class CurrentOdometry(Node):
         q.y = 0.0
         q.z = math.sin(yaw/2)
         return q
+    
+    def normalize_angle(self, a):
+        return math.atan2(math.sin(a), math.cos(a))
 
 def main():
     rclpy.init()

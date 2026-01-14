@@ -1,16 +1,19 @@
+
 import rclpy
 from rclpy.node import Node 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist 
 from custom_messages.msg import UpdateWaypoint, Waypoint, Return
 import math  
-import time 
+import time
+import pynput 
 
 ALPHA = 0.2
 MIN_LINEAR_VEL = 0.05
 MIN_ANGULAR_VEL = 0.05
 MAX_LINEAR_VEL = 1.0
 MAX_ANGULAR_VEL = 0.5
+ERROR_THRESHOLD = 0.01
 
 class RobotControl(Node):
     def __init__(self):
@@ -64,15 +67,29 @@ class RobotControl(Node):
         self.waypoint_queue = []
         self.active_target = None
         self.goal_tolerance_pos = 0.05
-        self.goal_tolerance_yaw = 0.1
+        self.goal_tolerance_yaw = 0.01
         self.visited_wp = []
         self.wp = None 
         self.return_ = False
         self.arrival_time = 0.0
         
         self.pause_at_target = False
-        self.pause_duration = 0.5 # seconds to pause at each waypoint
+        self.pause_duration = 1.0
         self.pause_start_time = None
+        self.pause_robot = False
+        
+        self.previous_x_d_error = 0.0
+        self.previous_y_d_error = 0.0
+        self.previous_yaw_d_error = 0.0
+        
+        self.scale = 0.0
+        
+        self.listener = pynput.keyboard.Listener(on_press = self.on_press)
+        self.listener.start()
+        
+        self.cmd_vel_msg = Twist()
+        
+        self.flip_checked = False 
 
     def waypoint_callback(self, wp_msg):
         self.wp = {
@@ -83,19 +100,15 @@ class RobotControl(Node):
             'yaw': 0.0
         }
         
-        dx = self.wp['x'] - self.current_x
-        dy = self.wp['y'] - self.current_y
-        self.wp['yaw'] = math.atan2(dy, dx)
-        
         self.get_logger().info(
-            f"Receiving waypoint: x = {self.wp['x']}, y = {self.wp['y']}, yaw = {self.wp['yaw']}"
+            f"Receiving waypoint: x = {self.wp['x']}, y = {self.wp['y']}"
         )
         
         self.waypoint_queue.append(self.wp)
         self.get_logger().info(f"Added to queue. Queue size = {len(self.waypoint_queue)}")
 
         if self.active_target is None:
-            self.active_target = self.waypoint_queue.pop(0)
+            self.active_target = dict(self.wp)
             self.get_logger().info(f"Activating first target: {self.active_target}")
 
     def current_odom_callback(self, current_odom_msg):
@@ -107,8 +120,42 @@ class RobotControl(Node):
         self.yaw = self.calculate_yaw(current_q)
         self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
         
+        if not self.flip_checked:
+            if self.yaw_start is None:
+                self.yaw_start = self.yaw
+                self.x_start = self.current_odom_x
+                self.y_start = self.current_odom_y
+
+                dx = self.current_odom_x - self.x_start
+                dy = self.current_odom_y - self.y_start
+                movement_angle = math.atan2(dy, dx)
+                yaw_relative = self.yaw - self.yaw_start
+                angle_diff = math.atan2(math.sin(movement_angle - yaw_relative),
+                                        math.cos(movement_angle - yaw_relative))
+
+                if abs(angle_diff) > math.pi / 2:
+                    self.get_logger().warn("Robot seems flipped! Adjusting yaw_start automatically.")
+                    self.yaw_start += math.pi
+                    
+            self.flip_checked = True
+        
     def update_wp_callback(self, update_wp_msg):
         if not update_wp_msg.edited:
+            return
+        
+        if self.pause_at_target or self.pause_robot:
+            self.cmd_vel_msg.linear.x = 0.0
+            self.cmd_vel_msg.linear.y = 0.0
+            self.cmd_vel_msg.angular.z = 0.0
+            self.cmd_vel_publisher.publish(self.cmd_vel_msg)
+            return
+        
+        if not self.active_target:
+            self.cmd_vel_msg.linear.x = 0.0
+            self.cmd_vel_msg.linear.y = 0.0
+            self.cmd_vel_msg.angular.z = 0.0
+            self.cmd_vel_publisher.publish(self.cmd_vel_msg)
+            self.get_logger().info("No active target")
             return
 
         update_wp = {
@@ -120,21 +167,13 @@ class RobotControl(Node):
         }
         
         for self.wp in self.waypoint_queue:
-            if self.wp is self.active_target:
+            if self.active_target:
                 if self.active_target['index'] == update_wp['updated_index'] and self.active_target['version'] != update_wp['updated_version']:
-                    self.active_target['index'] = update_wp['updated_index']
-                    self.active_target['x'] = (1 - ALPHA) * self.wp['x'] + ALPHA * update_wp['updated_x']
-                    self.active_target['y'] = (1 - ALPHA) * self.wp['y'] + ALPHA * update_wp['updated_y']
-                    
-                    dx_update = self.active_target['x'] - self.current_x
-                    dy_update = self.active_target['y'] - self.current_y
-                    
-                    yaw_update = math.atan2(dy_update, dx_update)
-                    update_wp['updated_yaw'] = yaw_update
-                    
-                    self.active_target['yaw'] = (1 - ALPHA) * self.wp['yaw'] + ALPHA * update_wp['updated_yaw']
+                    self.active_target['x'] = (1 - ALPHA) * self.active_target['x'] + ALPHA * update_wp['updated_x']
+                    self.active_target['y'] = (1 - ALPHA) * self.active_target['y'] + ALPHA * update_wp['updated_y']
                     self.active_target['version'] = update_wp['updated_version']
-                    self.get_logger().info(f'Active waypoint updated: {self.active_target}')
+
+                    self.get_logger().info(f"Active waypoint updated: {self.active_target}")
             elif self.wp['index'] == update_wp['updated_index'] and self.wp['version'] != update_wp['updated_version']:
                 self.wp['index'] = update_wp['updated_index']
                 self.wp['x'] = update_wp['updated_x']
@@ -152,102 +191,84 @@ class RobotControl(Node):
                 
     def return_callback(self, return_msg):
         self.return_ = return_msg.flag
-        
-        if self.return_:
-            self.get_logger().info("Return flag received")
-
-        if self.return_ and self.visited_wp:
-            wp = self.visited_wp.pop()
-
-            if 'return_yaw' in wp:
-                wp['yaw'] = wp['return_yaw']
-
-            self.active_target = wp
-            mode = 'Return' if self.return_ else 'Forward'
-            self.get_logger().info(f'{mode} to waypoint: {self.active_target}')
-            self.get_logger().info(f"Returning to previous waypoint: {self.active_target}")
-            self.return_ = False
-
-    def update_active_target(self):
-        if self.return_ and self.visited_wp:
-            wp = self.visited_wp.pop()
-            if 'return_yaw' in wp:
-                wp['yaw'] = wp['return_yaw']
-            self.active_target = wp
-            self.return_ = False
-            self.get_logger().info(f'Returning to previous waypoint: {self.active_target}')
-        elif not self.active_target and self.waypoint_queue:
-            self.active_target = self.waypoint_queue.pop(0)
-            self.get_logger().info(f'Next target: {self.active_target}')
 
     def timer_callback(self):
-        self.update_active_target()
+        if self.pause_at_target:
+            if time.perf_counter() - self.pause_start_time >= self.pause_duration:
+                self.pause_at_target = False
+                self.get_logger().info("Pause finished, resuming next target")
+            else:
+                self.publish_stop()
+                return
         
-        if not self.active_target:
+        if self.active_target is None:
             if self.waypoint_queue:
                 self.active_target = self.waypoint_queue.pop(0)
                 self.reset_controller_state()
-                self.get_logger().info(f'Activated new target: {self.active_target}')
+                self.get_logger().info(f"Next target activated: {self.active_target}")
+            elif self.return_ and self.visited_wp:
+                self.active_target = self.visited_wp.pop()
+                self.return_ = False
+                self.reset_controller_state()
+                self.get_logger().info(f"Returning to {self.active_target}")
             else:
-                cmd_vel_msg = Twist()
-                cmd_vel_msg.linear.x = 0.0
-                cmd_vel_msg.linear.y = 0.0
-                cmd_vel_msg.angular.z = 0.0
-                self.cmd_vel_publisher.publish(cmd_vel_msg)
-                self.get_logger().info('No active target: publishing zero velocity')
+                self.publish_stop()
                 return
         
         self.desired_x = self.active_target['x']
         self.desired_y = self.active_target['y']
         self.desired_z = 0.0
-        self.desired_yaw = self.active_target['yaw']
         
         self.current_x = self.current_odom_x
         self.current_y = self.current_odom_y
         
-        
         self.current_yaw = self.normalize_angle(self.yaw)
         
-        current_x_p_error_global = self.desired_x - self.current_x
-        current_y_p_error_global = self.desired_y - self.current_y
-        current_yaw_p_error = self.normalize_angle(self.desired_yaw - self.current_yaw)
+        dx = self.desired_x - self.current_x
+        dy = self.desired_y - self.current_y
         
-        current_x_p_error_local = math.cos(self.current_yaw) * current_x_p_error_global + math.sin(self.current_yaw) * current_y_p_error_global 
-        current_y_p_error_local = -math.sin(self.current_yaw) * current_x_p_error_global + math.cos(self.current_yaw) * current_y_p_error_global 
+        distance = math.hypot(dx, dy)
         
-        if abs(current_x_p_error_local) < 0.05:
-            current_x_p_error_local = 0.0
+        if distance < self.goal_tolerance_pos:
+            self.get_logger().info(f"Reached {self.active_target}")
 
-        if abs(current_y_p_error_local) < 0.05:
-            current_y_p_error_local = 0.0
-            
-        if abs(current_yaw_p_error) < 0.2:
-            current_yaw_p_error = 0.0
-            
-        current_time = time.perf_counter()
-        
-        if self.previous_time == 0.0:
-            self.previous_time = current_time
+            self.visited_wp.append(dict(self.active_target))
+            self.publish_stop()
+
+            self.pause_at_target = True
+            self.pause_start_time = time.perf_counter()
+            self.active_target = None
             return
         
-        self.dt = current_time - self.previous_time
+        self.desired_yaw = math.atan2(dy, dx)
         
-        current_x_d_error = (current_x_p_error_local - self.previous_x_p_error)/self.dt 
-        current_y_d_error = (current_y_p_error_local - self.previous_y_p_error)/self.dt
-        current_yaw_d_error = (current_yaw_p_error - self.previous_yaw_p_error)/self.dt
+        current_yaw_p_error = self.normalize_angle(self.desired_yaw - self.current_yaw)
         
-        distance = math.hypot(current_x_p_error_local, current_y_p_error_local)
+        current_x_p_error_local =  math.cos(self.current_yaw) * dx + math.sin(self.current_yaw) * dy
+        current_y_p_error_local = -math.sin(self.current_yaw) * dx + math.cos(self.current_yaw) * dy
+        
+        now = time.perf_counter()
+        
+        if self.previous_time == 0.0:
+            self.previous_time = now
+            return 
+        
+        self.dt = now - self.previous_time
+        self.previous_time = now
+        
+        current_x_d_error = (current_x_p_error_local - self.previous_x_p_error) / self.dt
+        current_y_d_error = (current_y_p_error_local - self.previous_y_p_error) / self.dt
+            
+        alpha_d = 0.3
+        current_x_d_error = alpha_d * current_x_d_error + (1 - alpha_d) * self.previous_x_d_error
+        current_y_d_error = alpha_d * current_y_d_error + (1 - alpha_d) * self.previous_y_d_error
 
-        if distance < 0.5:
-            scale = distance/0.5
-        else:
-            scale = 1.0
+        self.previous_x_d_error = current_x_d_error
+        self.previous_y_d_error = current_y_d_error
 
-        linear_vel_x = (self.k_p_linear * current_x_p_error_local + self.k_d * current_x_d_error) * scale
-        linear_vel_y = (self.k_p_linear * current_y_p_error_local + self.k_d * current_y_d_error) * scale
-        angular_vel_z = self.k_p_yaw * current_yaw_p_error + self.k_d * current_yaw_d_error
-        
-        self.previous_time = current_time
+        linear_vel_x = self.k_p_linear * current_x_p_error_local + self.k_d * current_x_d_error
+        linear_vel_y = self.k_p_linear * current_y_p_error_local + self.k_d * current_y_d_error
+        angular_vel_z = self.k_p_yaw * current_yaw_p_error
         
         self.previous_x = self.current_x
         self.previous_y = self.current_y
@@ -278,73 +299,29 @@ class RobotControl(Node):
         else:
             pass
         
-        if abs(linear_vel_x) < MIN_LINEAR_VEL:
+        if abs(current_x_p_error_local) < ERROR_THRESHOLD:
             linear_vel_x = 0.0
             
-        if abs(linear_vel_y) < MIN_LINEAR_VEL:
+        if abs(current_y_p_error_local) < ERROR_THRESHOLD:
             linear_vel_y = 0.0
             
-        if abs(angular_vel_z) < MIN_ANGULAR_VEL:
+        if abs(current_yaw_p_error) < 0.01:
             angular_vel_z = 0.0
-            
-        # Inside timer_callback, after calculating distance to target
-        distance = math.hypot(current_x_p_error_local, current_y_p_error_local)
-
-        if distance < self.goal_tolerance_pos and not self.pause_at_target:
-            # Reached the target, start pause
-            self.get_logger().info(f'Reached target: {self.active_target}')
-            self.reset_controller_state()
-
-            # Stop robot immediately
-            cmd_vel_msg = Twist()
-            cmd_vel_msg.linear.x = 0.0
-            cmd_vel_msg.linear.y = 0.0
-            cmd_vel_msg.angular.z = 0.0
-            self.cmd_vel_publisher.publish(cmd_vel_msg)
-
-            # Start pause
-            self.pause_at_target = True
-            self.pause_start_time = time.perf_counter()
-
-            # Save visited waypoint
-            wp_copy = dict(self.active_target)
-            wp_copy['return_yaw'] = self.current_yaw
-            self.visited_wp.append(wp_copy)
+                    
+        self.cmd_vel_msg.linear.x = linear_vel_x
+        self.cmd_vel_msg.linear.y = linear_vel_y
+        self.cmd_vel_msg.angular.z = angular_vel_z
         
-            return  # exit callback so robot stays stopped
-
-        # Handle pause at waypoint
-        if self.pause_at_target:
-            elapsed = time.perf_counter() - self.pause_start_time
-            
-            if elapsed >= self.pause_duration:
-                # Move to next waypoint
-                if self.waypoint_queue:
-                    self.active_target = self.waypoint_queue.pop(0)
-                    self.reset_controller_state()
-                    self.get_logger().info(f'Next target: {self.active_target}')
-                else:
-                    self.active_target = None
-                    self.get_logger().info('All waypoints completed')
-                self.pause_at_target = False
-            else:
-                # Still pausing, keep publishing zero velocity
-                cmd_vel_msg = Twist()
-                cmd_vel_msg.linear.x = 0.0
-                cmd_vel_msg.linear.y = 0.0
-                cmd_vel_msg.angular.z = 0.0
-                self.cmd_vel_publisher.publish(cmd_vel_msg)
-                return
-
-        cmd_vel_msg = Twist()
-        cmd_vel_msg.linear.x = linear_vel_x
-        cmd_vel_msg.linear.y = linear_vel_y
-        cmd_vel_msg.angular.z = angular_vel_z
-        
-        self.cmd_vel_publisher.publish(cmd_vel_msg)
+        self.cmd_vel_publisher.publish(self.cmd_vel_msg)
         mode = 'Return' if self.return_ else 'Forward'
+        
+        self.get_logger().info(
+            f"Local errors: X_local={current_x_p_error_local:.3f}, Y_local={current_y_p_error_local:.3f}, "
+            f"Cmd: Vx={linear_vel_x:.3f}, Vy={linear_vel_y:.3f}, Wz={angular_vel_z:.3f}"
+        )
+
         self.get_logger().info(f'{mode} navigation: Vx = {linear_vel_x}, Vy = {linear_vel_y}, Wz = {angular_vel_z}')
-        self.get_logger().info(f'Publishing: Vx = {cmd_vel_msg.linear.x}, Vy = {cmd_vel_msg.linear.y}, Wz = {cmd_vel_msg.angular.z}')
+        self.get_logger().info(f'Publishing: Vx = {self.cmd_vel_msg.linear.x}, Vy = {self.cmd_vel_msg.linear.y}, Wz = {self.cmd_vel_msg.angular.z}')
         
     def calculate_yaw(self, q):
         siny_cosp = 2 * (q.w * q.z + q.x * q.y)
@@ -383,6 +360,21 @@ class RobotControl(Node):
         self.previous_x_p_error = 0.0
         self.previous_y_p_error = 0.0
         self.previous_yaw_p_error = 0.0
+        
+    def on_press(self, key):
+        try:
+            if key == pynput.keyboard.KeyCode.from_char('p'):
+                self.pause_robot = True
+            elif key == pynput.keyboard.KeyCode.from_char('c'):
+                self.pause_robot = False 
+        except AttributeError:
+            pass 
+        
+    def publish_stop(self):
+        self.cmd_vel_msg.linear.x = 0.0
+        self.cmd_vel_msg.linear.y = 0.0
+        self.cmd_vel_msg.angular.z = 0.0
+        self.cmd_vel_publisher.publish(self.cmd_vel_msg)
         
 def main():
     rclpy.init()

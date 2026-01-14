@@ -38,6 +38,7 @@ This project has 2 packages:
 - UDP can receive data up to 64kB
 - Sending data to app at 10Hz
 - The port of the UDP socket for binding with the app is set to `5050`
+- Automatically filp the local frame if the frame transformation is reversed
 
 ---
 
@@ -85,7 +86,4 @@ colcon build
 - The odometry (`current_odometry`) is off by a few centimeters, and the orientation is also off by a few radians
 - The app can't handle too high frequency, it will lag
 - There's no launch file for this version
-- Full screen mode only works on Android 11+
 - No emergency stop is set on the app
-
-> Remark: this app was first written by b Lythong, but it was never used on robots due to wrong odometry being published from the app.
