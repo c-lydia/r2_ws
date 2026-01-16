@@ -41,10 +41,8 @@ class CurrentOdometry(Node):
         self.theta = None
         self.dt = 0.0
         self.previous_time = 0.0
-        self.start_checked = False
         self.init_x = None
         self.init_y = None
-        self.yaw_flip_checked = False
 
     def sensor_imu_callback(self, sensor_msg):
         q_x = sensor_msg.orientation.x 
@@ -87,31 +85,11 @@ class CurrentOdometry(Node):
         v_x_global = math.cos(self.current_yaw) * linear_vel_x_local - math.sin(self.current_yaw) * linear_vel_y_local
         v_y_global = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local
         
-        if not self.yaw_flip_checked:
-            speed = math.hypot(v_x_global, v_y_global)
-
-            if speed > 0.05:  # robot is clearly moving
-                vel_angle = math.atan2(v_y_global, v_x_global)
-                yaw_angle = self.current_yaw
-
-                angle_error = math.atan2(
-                    math.sin(vel_angle - yaw_angle),
-                    math.cos(vel_angle - yaw_angle)
-                )
-
-                # flipped ≈ 180°
-                if abs(abs(angle_error) - math.pi) < math.pi / 6:
-                    self.get_logger().warn("Yaw frame flipped — correcting by π")
-                    self.yaw_start += math.pi
-
-                    self.current_yaw = self.normalize_angle(
-                        self.yaw - self.yaw_start + 2 * math.pi * self.overflow_counter
-                    )
-                    
-                v_x_global = math.cos(self.current_yaw) * linear_vel_x_local - math.sin(self.current_yaw) * linear_vel_y_local
-                v_y_global = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local
-
-                self.yaw_flip_checked = True
+        if abs(v_x_global) < 0.01:
+            v_x_global = 0.0
+            
+        if abs(v_x_global) < 0.01:
+            v_x_global = 0.0
 
         current_time = time.perf_counter()
         

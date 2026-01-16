@@ -1,4 +1,3 @@
-
 import rclpy
 from rclpy.node import Node 
 from nav_msgs.msg import Odometry
@@ -13,7 +12,7 @@ MIN_LINEAR_VEL = 0.05
 MIN_ANGULAR_VEL = 0.05
 MAX_LINEAR_VEL = 1.0
 MAX_ANGULAR_VEL = 0.5
-ERROR_THRESHOLD = 0.01
+ERROR_THRESHOLD = 0.05
 
 class RobotControl(Node):
     def __init__(self):
@@ -89,7 +88,8 @@ class RobotControl(Node):
         
         self.cmd_vel_msg = Twist()
         
-        self.flip_checked = False 
+        self.in_return_mode = False 
+        self.startup_time = 0.0
 
     def waypoint_callback(self, wp_msg):
         self.wp = {
@@ -119,25 +119,6 @@ class RobotControl(Node):
         current_q = current_odom_msg.pose.pose.orientation 
         self.yaw = self.calculate_yaw(current_q)
         self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
-        
-        if not self.flip_checked:
-            if self.yaw_start is None:
-                self.yaw_start = self.yaw
-                self.x_start = self.current_odom_x
-                self.y_start = self.current_odom_y
-
-                dx = self.current_odom_x - self.x_start
-                dy = self.current_odom_y - self.y_start
-                movement_angle = math.atan2(dy, dx)
-                yaw_relative = self.yaw - self.yaw_start
-                angle_diff = math.atan2(math.sin(movement_angle - yaw_relative),
-                                        math.cos(movement_angle - yaw_relative))
-
-                if abs(angle_diff) > math.pi / 2:
-                    self.get_logger().warn("Robot seems flipped! Adjusting yaw_start automatically.")
-                    self.yaw_start += math.pi
-                    
-            self.flip_checked = True
         
     def update_wp_callback(self, update_wp_msg):
         if not update_wp_msg.edited:
@@ -172,6 +153,9 @@ class RobotControl(Node):
                     self.active_target['x'] = (1 - ALPHA) * self.active_target['x'] + ALPHA * update_wp['updated_x']
                     self.active_target['y'] = (1 - ALPHA) * self.active_target['y'] + ALPHA * update_wp['updated_y']
                     self.active_target['version'] = update_wp['updated_version']
+                    
+                    self.reset_controller_state()
+                    self.edit_override_time = time.perf_counter()
 
                     self.get_logger().info(f"Active waypoint updated: {self.active_target}")
             elif self.wp['index'] == update_wp['updated_index'] and self.wp['version'] != update_wp['updated_version']:
@@ -208,6 +192,7 @@ class RobotControl(Node):
                 self.get_logger().info(f"Next target activated: {self.active_target}")
             elif self.return_ and self.visited_wp:
                 self.active_target = self.visited_wp.pop()
+                self.in_return_mode = True
                 self.return_ = False
                 self.reset_controller_state()
                 self.get_logger().info(f"Returning to {self.active_target}")
@@ -231,6 +216,9 @@ class RobotControl(Node):
         
         if distance < self.goal_tolerance_pos:
             self.get_logger().info(f"Reached {self.active_target}")
+            
+            if self.in_return_mode:
+                self.in_return_mode = False
 
             self.visited_wp.append(dict(self.active_target))
             self.publish_stop()
@@ -247,6 +235,9 @@ class RobotControl(Node):
         current_x_p_error_local =  math.cos(self.current_yaw) * dx + math.sin(self.current_yaw) * dy
         current_y_p_error_local = -math.sin(self.current_yaw) * dx + math.cos(self.current_yaw) * dy
         
+        if self.in_return_mode:
+            current_x_p_error_local *= -1
+
         now = time.perf_counter()
         
         if self.previous_time == 0.0:
@@ -299,21 +290,23 @@ class RobotControl(Node):
         else:
             pass
         
-        if abs(current_x_p_error_local) < ERROR_THRESHOLD:
-            linear_vel_x = 0.0
-            
-        if abs(current_y_p_error_local) < ERROR_THRESHOLD:
-            linear_vel_y = 0.0
-            
-        if abs(current_yaw_p_error) < 0.01:
-            angular_vel_z = 0.0
+        edit_override = hasattr(self, "edit_override_time") and \
+                (time.perf_counter() - self.edit_override_time < 0.5)
+                
+        if not edit_override:
+            if abs(current_x_p_error_local) < ERROR_THRESHOLD:
+                linear_vel_x = 0.0
+            if abs(current_y_p_error_local) < ERROR_THRESHOLD:
+                linear_vel_y = 0.0
+            if abs(current_yaw_p_error) < 0.31:
+                angular_vel_z = 0.0
                     
         self.cmd_vel_msg.linear.x = linear_vel_x
         self.cmd_vel_msg.linear.y = linear_vel_y
         self.cmd_vel_msg.angular.z = angular_vel_z
         
         self.cmd_vel_publisher.publish(self.cmd_vel_msg)
-        mode = 'Return' if self.return_ else 'Forward'
+        mode = 'Return' if self.in_return_mode else 'Forward'
         
         self.get_logger().info(
             f"Local errors: X_local={current_x_p_error_local:.3f}, Y_local={current_y_p_error_local:.3f}, "
@@ -360,6 +353,10 @@ class RobotControl(Node):
         self.previous_x_p_error = 0.0
         self.previous_y_p_error = 0.0
         self.previous_yaw_p_error = 0.0
+
+        self.previous_x_d_error = 0.0
+        self.previous_y_d_error = 0.0
+        self.previous_yaw_d_error = 0.0
         
     def on_press(self, key):
         try:
