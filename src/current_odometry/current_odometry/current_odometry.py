@@ -30,8 +30,8 @@ class CurrentOdometry(Node):
         self.x_start = None
         self.y_start = None
         self.overflow_counter = 0.0
-        self.offset_x = 3.52
-        self.offset_y = 1.26
+        self.offset_x = 0.0
+        self.offset_y = 0.0
         self.offset_yaw = 0.0
         self.previous_yaw_odom = 0.0
         self.difference_yaw = 0.0
@@ -79,8 +79,8 @@ class CurrentOdometry(Node):
         self.get_logger().info(f"Position: {self.motor_position[motor_id]}, index: {motor_id}")
         
         linear_vel_x_local = (self.R/4) * (self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] + self.motor_vel[3])
-        linear_vel_y_local = (self.R/4) * (self.motor_vel[0] - self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3])
-        w_z = (self.R * (-self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3]))/(2 * (self.l_x + self.l_y))
+        linear_vel_y_local = (self.R/4) * (-self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3])
+        w_z = (self.R * (-self.motor_vel[0] + self.motor_vel[1] - self.motor_vel[2] + self.motor_vel[3]))/(2 * (self.l_x + self.l_y))
         
         v_x_global = math.cos(self.current_yaw) * linear_vel_x_local - math.sin(self.current_yaw) * linear_vel_y_local
         v_y_global = math.sin(self.current_yaw) * linear_vel_x_local + math.cos(self.current_yaw) * linear_vel_y_local

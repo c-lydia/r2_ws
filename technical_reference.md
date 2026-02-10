@@ -18,6 +18,28 @@
 
 ---
 
+## Waypoint queue and state machine
+
+---
+
+### Waypoint queue
+
+- **Waypoint queue:** stores received waypoints from `/waypoint`
+- **Active target:** currently executing waypoint
+- **Visited waypoints:** stack of completed waypoints for return
+
+---
+
+### State machine
+
+- `IDLE`: no active target, waiting for waypoint or return command
+- `NAVIGATING`: moving to `active_target`
+- `EDIT`: active target is being edited
+- `PAUSED`: robot is paused by keyboard or automatic pause
+- `RETURNING`: moving to last visited waypoint (return command)
+
+---
+
 ## Communication protocol
 
 ---
@@ -261,44 +283,75 @@ inputY = odometryData[1] * (screenHeight / GAME_FIELD_Y);
 
 #### PD controller
 
+- **Position errors:** computed in global frame
+
 ``` python
-dx = self.desired_x - self.current_x
-dy = self.desired_y - self.current_y
+current_x_error_g = self.desired_x - self.current_x
+current_y_error_g = self.desired_y - self.current_y
         
 current_yaw_p_error = self.normalize_angle(self.desired_yaw - self.current_yaw)
-        
-current_x_p_error_local =  math.cos(self.current_yaw) * dx + math.sin(self.current_yaw) * dy
-current_y_p_error_local = -math.sin(self.current_yaw) * dx + math.cos(self.current_yaw) * dy
-        
-current_x_d_error = (current_x_p_error_local - self.previous_x_p_error) / self.dt
-current_y_d_error = (current_y_p_error_local - self.previous_y_p_error) / self.dt
-            
-alpha_d = 0.3
-current_x_d_error = alpha_d * current_x_d_error + (1 - alpha_d) * self.previous_x_d_error
-current_y_d_error = alpha_d * current_y_d_error + (1 - alpha_d) * self.previous_y_d_error
+```
 
-linear_vel_x = self.k_p_linear * current_x_p_error_local + self.k_d * current_x_d_error
-linear_vel_y = self.k_p_linear * current_y_p_error_local + self.k_d * current_y_d_error
-angular_vel_z = self.k_p_yaw * current_yaw_p_error
+- **Derivative errors:**
+
+``` python
+current_yaw_d_error = (current_yaw_p_error - self.previous_yaw_p_error)/self.dt
+current_x_d_error = (current_x_error_g_- self.previous_x_p_error)/self.dt
+current_y_d_error = (current_y_error_g - self.previous_y_p_error)/self.dt
+```
+
+- **Complementary filtering:** apply complementary filter on D term to smooth the movement
+
+``` python
+current_x_d_error = ALPHA_D * current_x_d_error + (1 - ALPHA_D) * self.previous_x_d_error
+current_y_d_error = ALPHA_D * current_y_d_error + (1 - ALPHA_D) * self.previous_y_d_error
+current_yaw_d_error = ALPHA_D * current_yaw_d_error + (1 - ALPHA_D) * self.previous_yaw_d_error
+```
+
+- **PD controller:**
+
+``` python
+linear_vel_x_g = self.k_p_linear * current_x_error_g + self.k_d * current_x_d_error
+linear_vel_y_g = self.k_p_linear * current_y_error_g + self.k_d * current_y_d_error
+angular_vel_z_g = self.k_p_yaw * current_yaw_p_error + self.k_d_yaw * current_yaw_d_error
+```
+
+- **Frame conversion:**
+
+``` python
+linear_vel_x_l =  math.cos(self.current_yaw) * current_x_error_g + math.sin(self.current_yaw) * current_y_error_g
+linear_vel_y_l = -math.sin(self.current_yaw) * current_x_error_g + math.cos(self.current_yaw) * current_y_error_g
 ```
 
 - Units must match: meters (x, y), radians (yaw), m/s (velocities)
 - Linear velocity in robot frame, angular velocity around z-axis
-- Low-pass filtering applied on derivative term (`alpha_d = 0.3`)
+- Low-pass filtering applied on derivative term
+- Return `linear_vel_x`, `linear_vel_y`, and `angular_vel_z`
 
 ---
 
 #### Dead reckoning
 
-- if the velocity exceeds maximum velocity, overwirte it with maximum velocity
-- if proportional error is less than error threshold, stop the robot to prevent oscillation
-- Error threshold must be small enough that the odometry isn't too far off from the actual physical distance
+If the velocity is less than error threshold, overwrite it with 0
+
+---
+
+#### Speed limit
+
+If velocity exceeds maximum speed, overwrite it with maximum speed
 
 ---
 
 ### Path planning
 
 ---
+
+#### Arrivel detection
+
+- Target reached if:
+  - Distance < `goal_tolerance_pos = 0.05m`
+  - Remains withitn tolerance for `0.5s`
+- Arrival time accumulated using `dt` from timer callback
 
 #### Waypoint callback
 
@@ -318,7 +371,7 @@ angular_vel_z = self.k_p_yaw * current_yaw_p_error
 
 #### Waypoint update
 
-- Store the edited waypointin a dictionary
+- Store the edited waypoint in a dictionary
 - If the edited waypoint is active, use complementary to smooth the robot movement when update to prevent jumping suddenly
 
 ``` python
@@ -354,8 +407,8 @@ self.active_target['y'] = (1 - ALPHA) * self.active_target['y'] + ALPHA * update
 
 ``` python
 linear_vel_x_local = (self.R/4) * (self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] + self.motor_vel[3])
-linear_vel_y_local = (self.R/4) * (self.motor_vel[0] - self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3])
-w_z = (self.R * (-self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3]))/(2 * (self.l_x + self.l_y))
+linear_vel_y_local = (self.R/4) * (-self.motor_vel[0] + self.motor_vel[1] + self.motor_vel[2] - self.motor_vel[3])
+w_z = (self.R * (-self.motor_vel[0] + self.motor_vel[1] - self.motor_vel[2] + self.motor_vel[3]))/(2 * (self.l_x + self.l_y))
 ```
 
 - Convert them to global frame
