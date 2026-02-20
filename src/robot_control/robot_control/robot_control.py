@@ -153,7 +153,7 @@ class RobotControl(Node):
             'updated_yaw': 0.0
         }
         
-        if self.active_target['index'] == update_wp['updated_index'] and self.active_target['version'] != update_wp['updated_version']:
+        if self.active_target['index'] == update_wp['updated_index']:
             if self.active_target['version'] != update_wp['version']:
                 self.state = StateMachine.EDIT
                 self.edit_wp = update_wp
@@ -307,7 +307,7 @@ class RobotControl(Node):
         
         return v
     
-    def dead_reckoning(self, v, threshold = ERROR_THRESHOLD):
+    def dead_reckoning(self, v, threshold):
         """
         Apply a deadzone to a velocity.
         Returns 0 if |v| < threshold, else returns v unchanged.
