@@ -6,8 +6,8 @@ log/
 docs/Makefile
 docs/make.bat
 docs/source/conf.py
-docs/build/*
-!docs/build/target_setter.pdf
+docs/build/latex/*
+!docs/build/latex/target_setter.pdf
 
 # Root level Makefiles
 Makefile
