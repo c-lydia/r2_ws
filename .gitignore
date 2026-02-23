@@ -1,9 +1,17 @@
 .vscode/
 log/
-build/doctrees/
-build/latex/
-docs/build/doctrees/
-docs/build/latex/
 .~lock.*
-build/latex/target_setter.fdb_latexmk
-docs/build/latex/target_setter.fdb_latexmk
+
+# docs directory - ignore config files and build artifacts except the PDF
+docs/Makefile
+docs/make.bat
+docs/source/conf.py
+docs/build/*
+!docs/build/target_setter.pdf
+
+# Root level Makefiles
+Makefile
+make.bat
+
+# Build directories (but not docs/build's target_setter.pdf, handled above)
+/build/
