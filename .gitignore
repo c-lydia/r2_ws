@@ -18,3 +18,13 @@ make.bat
 
 # Build directories (but not docs/build's target_setter.pdf, handled above)
 /build/
+
+# html generated
+docs/build/html/_images
+docs/build/html/_static
+docs/build/html/_sources
+docs/build/html/objects.inv
+docs/build/html/searchindex.js
+docs/build/.buildinfo.bak
+docs/build/.buildinfo
+docs/build/.doctrees/
