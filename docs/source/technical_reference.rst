@@ -156,14 +156,17 @@ When adding waypoint:
 - Send waypoint via UDP
 
 When editing waypoint:
+
 - Specify index and new coordinates
 - Update list and redraw UI
 - Send edit packet via UDP with plan ID
 
 Return message:
+
 - Single-byte packet sent to trigger return behavior
 
 Odometry:
+
 - Display robot position
 - Compute accurate target positions
 
@@ -206,6 +209,7 @@ Local frame:
 - +yaw: counter-clockwise
 
 Global frame:
+
 - Origin: top-left of the screen on the target_setter app
 - +x: rightward on the screen on the target_setter app
 - +y: downward on the screen on the target_setter app
@@ -223,6 +227,7 @@ On the robot and the data sent from app:
 - Wz: rad/s
 
 On the app:
+
 - x: percentage
 - y: percentage
 

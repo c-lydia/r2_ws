@@ -26,21 +26,27 @@ Drive system
 Sensors
 -------
 
-- **Inertial Measurement Unit (IMU):** provides angular velocity and linear acceleration
-  - **Model:** HFI-A9
-  - **Sampling rate:** 100 Hz
-- **Encoder:** integrated with each motor; used for odometry estimation
+**Inertial Measurement Unit (IMU):** provides angular velocity and linear acceleration
+
+- **Model:** HFI-A9
+- **Sampling rate:** 100 Hz
+
+**Encoder:** integrated with each motor; used for odometry estimation
 
 Compute hardware
 ----------------
 
-- **High-level processor:** NVIDIA Jetson Xavier
-  - **OS:** Ubuntu 20.04
-  - **Middleware:** ROS2 Foxy
-  - **Cooling:** cooling fan
-- **Low-level controller:** STM32 microcontroller
-  - Interfaces with motor driver and encoders for real-time control
-- **Communication:** CAN bus at 115200 bps
+**High-level processor:** NVIDIA Jetson Xavier
+
+- **OS:** Ubuntu 20.04
+- **Middleware:** ROS2 Foxy
+- **Cooling:** cooling fan
+
+**Low-level controller:** STM32 microcontroller
+
+- Interfaces with motor driver and encoders for real-time control
+
+**Communication:** CAN bus at 115200 bps
 
 Network infrastructure
 ----------------------
@@ -54,21 +60,26 @@ Network infrastructure
 Power system
 ------------
 
-- **Motors:** 24 V Li-ion battery pack, DC-DC converter (12 V) for motor drivers
-- **Electronics:** 12 V Li-ion battery pack, voltage regulator for Jetson, sensors, and STM32
-- **Safety features:**
-  - Fuses on smart driver boards
-  - Overcurrent protection
-  - Emergency stop push button
+**Motors:** 24 V Li-ion battery pack, DC-DC converter (12 V) for motor drivers
+
+**Electronics:** 12 V Li-ion battery pack, voltage regulator for Jetson, sensors, and STM32
+
+**Safety features:**
+
+- Fuses on smart driver boards
+- Overcurrent protection
+- Emergency stop push button
 
 Safety constraints
 ------------------
 
-- **hardware-level safety:** fuses and emergency stop
-- **Software-level safety:**
-  - Speed limits enforced in control software
-  - Communication failure handling
-  - Watchdog timers for microcontroller to prevent system hang
+**Hardware-level safety:** fuses and emergency stop
+
+**Software-level safety:**
+
+- Speed limits enforced in control software
+- Communication failure handling
+- Watchdog timers for microcontroller to prevent system hang
 
 Notes
 -----

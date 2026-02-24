@@ -87,6 +87,7 @@ This project covers:
 - System integration and testing
 
 This project does not include:
+
 - Full autonomous robot navigation
 - Sensor fusion beyond basic odometry and IMU integration
 - Algorithm optimization

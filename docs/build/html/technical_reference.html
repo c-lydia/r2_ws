@@ -1,0 +1,708 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technical Reference &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting Guide" href="troubleshooting_guide.html" />
+    <link rel="prev" title="Installation and Configuration" href="installation_and_configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Technical Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#target-setter-app">Target_Setter app</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#r2-src">r2_src</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#waypoint-queue-and-state-machine">Waypoint queue and state machine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#waypoint-queue">Waypoint queue</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#state-machine">State machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#communication-protocol">Communication protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#udp-packet-structure">UDP packet structure</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#waypoints-packet">Waypoints packet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#edit-waypoint-packet">Edit waypoint packet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#return-message-packet">Return message packet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#odometry-data-reception">Odometry data reception</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#udp-data-flow">UDP data flow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sending-data">Sending data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#receiving-data">Receiving data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processing-data">Processing data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#coordinate-convention-and-control-logic">Coordinate convention and control logic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coordinate-flow">Coordinate flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#frame-definition">Frame definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#touch-input-conversion">Touch input conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#control-logic">Control logic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pd-controller">PD controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dead-reckoning">Dead reckoning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#speed-limit">Speed limit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#path-planning">Path planning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#arrivel-detection">Arrivel detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#waypoint-callback">Waypoint callback</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#waypoints-execution">Waypoints execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#waypoint-update">Waypoint update</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pause">Pause</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#return">Return</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#odometry-handling">Odometry handling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#frame-conversion">Frame conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#offset">Offset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#yaw">Yaw</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#inverse-kinematic">Inverse Kinematic</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Technical Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/technical_reference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="technical-reference">
+<h1>Technical Reference<a class="headerlink" href="#technical-reference" title="Link to this heading">¶</a></h1>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
+<img alt="System Architecture Diagram" src="_images/system_overview.png" />
+<section id="target-setter-app">
+<h3>Target_Setter app<a class="headerlink" href="#target-setter-app" title="Link to this heading">¶</a></h3>
+<img alt="Target Setter App Screenshot" src="_images/app_architecture-Page-1.png" />
+</section>
+<section id="r2-src">
+<h3>r2_src<a class="headerlink" href="#r2-src" title="Link to this heading">¶</a></h3>
+<img alt="r2_src Screenshot" src="_images/ros2_architecture.png" />
+</section>
+</section>
+<section id="waypoint-queue-and-state-machine">
+<h2>Waypoint queue and state machine<a class="headerlink" href="#waypoint-queue-and-state-machine" title="Link to this heading">¶</a></h2>
+<section id="waypoint-queue">
+<h3>Waypoint queue<a class="headerlink" href="#waypoint-queue" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Waypoint queue:</strong> stores received waypoints from <cite>/waypoint</cite></p></li>
+<li><p><strong>Active target:</strong> currently executing waypoint</p></li>
+<li><p><strong>Visited waypoints:</strong> stack of completed waypoints for return</p></li>
+</ul>
+</section>
+</section>
+<section id="state-machine">
+<h2>State machine<a class="headerlink" href="#state-machine" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">IDLE</span></code>: no active target, waiting for waypoint or return command</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NAVIGATING</span></code>: moving to <code class="docutils literal notranslate"><span class="pre">active_target</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EDIT</span></code>: active target is being edited</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAUSED</span></code>: robot is paused by keyboard or automatic pause</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RETURNING</span></code>: moving to last visited waypoint (return command)</p></li>
+</ul>
+</section>
+<section id="communication-protocol">
+<h2>Communication protocol<a class="headerlink" href="#communication-protocol" title="Link to this heading">¶</a></h2>
+<section id="udp-packet-structure">
+<h3>UDP packet structure<a class="headerlink" href="#udp-packet-structure" title="Link to this heading">¶</a></h3>
+<section id="waypoints-packet">
+<h4>Waypoints packet<a class="headerlink" href="#waypoints-packet" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> send a list of waypoints for the robot to follow</p></li>
+<li><p><strong>Frequency:</strong> send when pressing Send in the app</p></li>
+</ul>
+<p><strong>Packet Structure (binary):</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Offset</p></th>
+<th class="head"><p>Size (bytes)</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>4</p></td>
+<td><p>Header (0xAA)</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>4</p></td>
+<td><p>Number of waypoints (counter)</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p>4</p></td>
+<td><p>Plan ID (version)</p></td>
+</tr>
+<tr class="row-odd"><td><p>12</p></td>
+<td><p>16 * N</p></td>
+<td><p>Waypoint (X, Y) in double (8 B)</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>N = number of waypoints</p></li>
+<li><p>Coordinates are in meters, converted from percentage position</p></li>
+<li><p>Byte order: Little Endian</p></li>
+</ul>
+</section>
+<section id="edit-waypoint-packet">
+<h4>Edit waypoint packet<a class="headerlink" href="#edit-waypoint-packet" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> update a previously sent waypoint</p></li>
+<li><p><strong>Frequency:</strong> send when user edits a waypoint via the app</p></li>
+</ul>
+<p><strong>Packet structure (binary):</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Offset</p></th>
+<th class="head"><p>Size (bytes)</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>Edited flag (1 = edited)</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>4</p></td>
+<td><p>Waypoint index (1-based)</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>4</p></td>
+<td><p>Plan ID</p></td>
+</tr>
+<tr class="row-odd"><td><p>9</p></td>
+<td><p>8</p></td>
+<td><p>New X coordinate (double)</p></td>
+</tr>
+<tr class="row-even"><td><p>17</p></td>
+<td><p>8</p></td>
+<td><p>New Y coordinate (double)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="return-message-packet">
+<h4>Return message packet<a class="headerlink" href="#return-message-packet" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> send a single boolean signal to the robot</p></li>
+<li><p><strong>Frequency:</strong> send when return button is pressed</p></li>
+</ul>
+<p><strong>Packet structure (binary):</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Offset</p></th>
+<th class="head"><p>Size (bytes)</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>Edited flag (0=false,1=true)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="odometry-data-reception">
+<h4>Odometry data reception<a class="headerlink" href="#odometry-data-reception" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> receives current robot odometry</p></li>
+<li><p><strong>Frequency:</strong> 10Hz</p></li>
+</ul>
+<p><strong>Packet structure (binary):</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Offset</p></th>
+<th class="head"><p>Size (bytes)</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>8</p></td>
+<td><p>X position (double)</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p>8</p></td>
+<td><p>Y position (double)</p></td>
+</tr>
+<tr class="row-even"><td><p>16</p></td>
+<td><p>8</p></td>
+<td><p>Yaw (double, radians)</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Byte order: Little Endian</p></li>
+<li><p>Latest odometry stored in memory for waypoint calculations</p></li>
+</ul>
+</section>
+</section>
+<section id="udp-data-flow">
+<h3>UDP data flow<a class="headerlink" href="#udp-data-flow" title="Link to this heading">¶</a></h3>
+<section id="sending-data">
+<h4>Sending data<a class="headerlink" href="#sending-data" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>App uses <code class="docutils literal notranslate"><span class="pre">NetworkManager.sendWaypoints()</span></code>, <code class="docutils literal notranslate"><span class="pre">sendEdit()</span></code>, and <code class="docutils literal notranslate"><span class="pre">sendMesage()</span></code></p></li>
+<li><p>Waypoints are converted to binary packets before sending</p></li>
+<li><p>Each send operation is done in a separate thread</p></li>
+<li><p>Plan ID differentiates waypoint plans</p></li>
+<li><p>Packets sent via UDP to robot IP/port (default 5050)</p></li>
+</ul>
+</section>
+<section id="receiving-data">
+<h4>Receiving data<a class="headerlink" href="#receiving-data" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Persistent UDP socket listens (<code class="docutils literal notranslate"><span class="pre">startReceiving(port)</span></code>)</p></li>
+<li><p>Robot sends odometry at 10Hz (X, Y, Yaw)</p></li>
+<li><p>Incoming packets converted using Little Endian byte order</p></li>
+<li><p>Latest odometry stored in <code class="docutils literal notranslate"><span class="pre">latestOdometry</span></code></p></li>
+</ul>
+</section>
+<section id="processing-data">
+<h4>Processing data<a class="headerlink" href="#processing-data" title="Link to this heading">¶</a></h4>
+<p>When adding waypoint:</p>
+<ul class="simple">
+<li><p>Convert touch position to normalized coordinates</p></li>
+<li><p>Compute target X, Y in meters</p></li>
+<li><p>Add to waypoint list, update UI</p></li>
+<li><p>Send waypoint via UDP</p></li>
+</ul>
+<p>When editing waypoint:</p>
+<ul class="simple">
+<li><p>Specify index and new coordinates</p></li>
+<li><p>Update list and redraw UI</p></li>
+<li><p>Send edit packet via UDP with plan ID</p></li>
+</ul>
+<p>Return message:</p>
+<ul class="simple">
+<li><p>Single-byte packet sent to trigger return behavior</p></li>
+</ul>
+<p>Odometry:</p>
+<ul class="simple">
+<li><p>Display robot position</p></li>
+<li><p>Compute accurate target positions</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="coordinate-convention-and-control-logic">
+<h2>Coordinate convention and control logic<a class="headerlink" href="#coordinate-convention-and-control-logic" title="Link to this heading">¶</a></h2>
+<section id="coordinate-flow">
+<h3>Coordinate flow<a class="headerlink" href="#coordinate-flow" title="Link to this heading">¶</a></h3>
+<p>Touch → UI → App → Robot</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Touch Event (screen pixels)
+   ↓ absolutePosition()
+Absolute Coordinates relative to boundaryView
+   ↓ normalizedPosition()
+Normalized Coordinates (0–1)
+   ↓ percentagePosition()
+Percentage Coordinates (0–100%)
+   ↓ targetPosition()
+Global Frame (meters) → UDP → Robot
+</pre></div>
+</div>
+<p>Robot → App (Odometry)</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Odometry Packet (X, Y, yaw in meters) → inputPosition()
+   ↓ metersToPxX/Y
+Pixels on UI → Display robot position
+</pre></div>
+</div>
+</section>
+<section id="frame-definition">
+<h3>Frame definition<a class="headerlink" href="#frame-definition" title="Link to this heading">¶</a></h3>
+<p>Local frame:</p>
+<ul class="simple">
+<li><p>Origin: the center of the robot</p></li>
+<li><p>+x: forward</p></li>
+<li><p>+y: left</p></li>
+<li><p>+yaw: counter-clockwise</p></li>
+</ul>
+<p>Global frame:</p>
+<ul class="simple">
+<li><p>Origin: top-left of the screen on the target_setter app</p></li>
+<li><p>+x: rightward on the screen on the target_setter app</p></li>
+<li><p>+y: downward on the screen on the target_setter app</p></li>
+<li><p>Waypoints that is sent to the robot is in global frame</p></li>
+</ul>
+<p><strong>Units:</strong></p>
+<p>On the robot and the data sent from app:</p>
+<ul class="simple">
+<li><p>x: meters</p></li>
+<li><p>y: meters</p></li>
+<li><p>yaw: radians (data from app only send x and y, yaw must be infer from them)</p></li>
+<li><p>Vx: m/s</p></li>
+<li><p>Vy: m/s</p></li>
+<li><p>Wz: rad/s</p></li>
+</ul>
+<p>On the app:</p>
+<ul class="simple">
+<li><p>x: percentage</p></li>
+<li><p>y: percentage</p></li>
+</ul>
+</section>
+<section id="touch-input-conversion">
+<h3>Touch input conversion<a class="headerlink" href="#touch-input-conversion" title="Link to this heading">¶</a></h3>
+<p><strong>Absolute position (touch):</strong></p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="n">absoluteX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rawX</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">boundaryLeft</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">absoluteY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rawY</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">boundaryTop</span><span class="p">;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Converts raw screen coordinate to coordinate relative to <cite>boundaryView</cite></p></li>
+<li><p>Clamped to boundary edges</p></li>
+</ul>
+<p><strong>Normalized position (0-1):</strong></p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="n">normalizedX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">absoluteX</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">screenWidth</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">normalizedY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">absoluteY</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">screenHeight</span><span class="p">;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Represents position as fraction of the screen</p></li>
+</ul>
+<p><strong>Percentage position (0-100%):</strong></p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="n">percentageX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedX</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">100.0</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">percentageY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">100.0</span><span class="p">;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Used as intermediate format for calculation into world meters</p></li>
+<li><p>Checked against 0-100% boundary</p></li>
+</ul>
+<p><strong>Global meters (for UDP):</strong></p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="n">targetX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">percentageX</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">GAME_FIELD_X</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">targetY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">percentageY</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">GAME_FIELD_Y</span><span class="p">;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Converts to meters based on field dimension</p></li>
+<li><p>Result is sent to robot</p></li>
+</ul>
+<p><strong>Robot odometry (UI display):</strong></p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="n">inputX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">odometryData</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">screenWidth</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">GAME_FIELD_X</span><span class="p">);</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">inputY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">odometryData</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">screenHeight</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">GAME_FIELD_Y</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Converts meters to pixels for UI display</p></li>
+<li><p>Clamped boundary using <cite>validateBoundary()</cite></p></li>
+</ul>
+</section>
+</section>
+<section id="control-logic">
+<h2>Control logic<a class="headerlink" href="#control-logic" title="Link to this heading">¶</a></h2>
+<section id="pd-controller">
+<h3>PD controller<a class="headerlink" href="#pd-controller" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Position errors:</strong></p></li>
+</ul>
+<p>computed in global frame</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_x_error_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">desired_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span>
+<span class="n">current_y_error_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">desired_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span>
+
+<span class="n">current_yaw_p_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">desired_yaw</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Derivative errors:</strong></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_yaw_d_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_yaw_p_error</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_yaw_p_error</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+<span class="n">current_x_d_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_x_error_g</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_x_p_error</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+<span class="n">current_y_d_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_y_error_g</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_y_p_error</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Complementary filtering:</strong></p></li>
+</ul>
+<p>apply complementary filter on D term to smooth the movement</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_x_d_error</span> <span class="o">=</span> <span class="n">ALPHA_D</span> <span class="o">*</span> <span class="n">current_x_d_error</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ALPHA_D</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_x_d_error</span>
+<span class="n">current_y_d_error</span> <span class="o">=</span> <span class="n">ALPHA_D</span> <span class="o">*</span> <span class="n">current_y_d_error</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ALPHA_D</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_y_d_error</span>
+<span class="n">current_yaw_d_error</span> <span class="o">=</span> <span class="n">ALPHA_D</span> <span class="o">*</span> <span class="n">current_yaw_d_error</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ALPHA_D</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_yaw_d_error</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>PD controller:</strong></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">linear_vel_x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_linear</span> <span class="o">*</span> <span class="n">current_x_error_g</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_d</span> <span class="o">*</span> <span class="n">current_x_d_error</span>
+<span class="n">linear_vel_y_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_linear</span> <span class="o">*</span> <span class="n">current_y_error_g</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_d</span> <span class="o">*</span> <span class="n">current_y_d_error</span>
+<span class="n">angular_vel_z_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_yaw</span> <span class="o">*</span> <span class="n">current_yaw_p_error</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_d_yaw</span> <span class="o">*</span> <span class="n">current_yaw_d_error</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Frame conversion:</strong></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">linear_vel_x_l</span> <span class="o">=</span>  <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">current_x_error_g</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">current_y_error_g</span>
+<span class="n">linear_vel_y_l</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">current_x_error_g</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">current_y_error_g</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Units must match: meters (x, y), radians (yaw), m/s (velocities)</p></li>
+<li><p>Linear velocity in robot frame, angular velocity around z-axis</p></li>
+<li><p>Low-pass filtering applied on derivative term</p></li>
+<li><p>Return <cite>linear_vel_x</cite>, <cite>linear_vel_y</cite>, and <cite>angular_vel_z</cite></p></li>
+</ul>
+</section>
+<section id="dead-reckoning">
+<h3>Dead reckoning<a class="headerlink" href="#dead-reckoning" title="Link to this heading">¶</a></h3>
+<p>If the velocity is less than error threshold, overwrite it with 0</p>
+</section>
+<section id="speed-limit">
+<h3>Speed limit<a class="headerlink" href="#speed-limit" title="Link to this heading">¶</a></h3>
+<p>If velocity exceeds maximum speed, overwrite it with maximum speed</p>
+</section>
+</section>
+<section id="path-planning">
+<h2>Path planning<a class="headerlink" href="#path-planning" title="Link to this heading">¶</a></h2>
+<section id="arrivel-detection">
+<h3>Arrivel detection<a class="headerlink" href="#arrivel-detection" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Target reached if:
+- Distance &lt; <code class="docutils literal notranslate"><span class="pre">goal_tolerance_pos</span> <span class="pre">=</span> <span class="pre">0.05m</span></code>
+- Remains withitn tolerance for <code class="docutils literal notranslate"><span class="pre">0.5s</span></code></p></li>
+<li><p>Arrival time accumulated using <code class="docutils literal notranslate"><span class="pre">dt</span></code> from timer callback</p></li>
+</ul>
+</section>
+<section id="waypoint-callback">
+<h3>Waypoint callback<a class="headerlink" href="#waypoint-callback" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Store each waypoint in a dictionary</p></li>
+<li><p>Append it into the queue</p></li>
+<li><p>Copy the waypoint in the queue to <code class="docutils literal notranslate"><span class="pre">active_target</span></code> to execute</p></li>
+</ul>
+</section>
+<section id="waypoints-execution">
+<h3>Waypoints execution<a class="headerlink" href="#waypoints-execution" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>if <code class="docutils literal notranslate"><span class="pre">active_target</span></code> does not exist, and there’s waypoint in the queue, pop the queue, then reset robot state to go to the waypoint that’s being popped</p></li>
+<li><p>if return is triggered, and there’s visited waypoint, command the robot to go the visited waypoint</p></li>
+<li><p>Otherwise, stop the robot</p></li>
+</ul>
+</section>
+<section id="waypoint-update">
+<h3>Waypoint update<a class="headerlink" href="#waypoint-update" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Store the edited waypoint in a dictionary</p></li>
+<li><p>If the edited waypoint is active, use complementary to smooth the robot movement when update to prevent jumping suddenly</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">active_target</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ALPHA</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_target</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">ALPHA</span> <span class="o">*</span> <span class="n">update_wp</span><span class="p">[</span><span class="s1">&#39;updated_x&#39;</span><span class="p">]</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">active_target</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ALPHA</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_target</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">ALPHA</span> <span class="o">*</span> <span class="n">update_wp</span><span class="p">[</span><span class="s1">&#39;updated_y&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Otherwise, just update the waypoint as normal</p></li>
+</ul>
+</section>
+<section id="pause">
+<h3>Pause<a class="headerlink" href="#pause" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Robot pauses motion at each target</p></li>
+<li><p>If distance from the robot to the target is less than tolerance, stop the robot</p></li>
+<li><p>If the elapsed time during pause exceeds pause duration, command the robot to go to the next waypoint</p></li>
+</ul>
+</section>
+<section id="return">
+<h3>Return<a class="headerlink" href="#return" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Update the return flag</p></li>
+</ul>
+</section>
+</section>
+<section id="odometry-handling">
+<h2>Odometry handling<a class="headerlink" href="#odometry-handling" title="Link to this heading">¶</a></h2>
+<section id="frame-conversion">
+<h3>Frame conversion<a class="headerlink" href="#frame-conversion" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Calculate velocity in local frame</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">linear_vel_x_local</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">linear_vel_y_local</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">w_z</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_vel</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l_x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">l_y</span><span class="p">))</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Convert them to global frame</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v_x_global</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">linear_vel_x_local</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">linear_vel_y_local</span>
+<span class="n">v_y_global</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">linear_vel_x_local</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span><span class="p">)</span> <span class="o">*</span> <span class="n">linear_vel_y_local</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Integrate velocity to get position</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+=</span> <span class="n">v_x_global</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">+=</span> <span class="n">v_y_global</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+</pre></div>
+</div>
+</section>
+<section id="offset">
+<h3>Offset<a class="headerlink" href="#offset" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">x_odom</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_start</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_offset_x</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">y_odom</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_offset_y</span>
+</pre></div>
+</div>
+</section>
+<section id="yaw">
+<h3>Yaw<a class="headerlink" href="#yaw" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Calculate yaw from quaternion</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculate_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_x</span><span class="p">,</span> <span class="n">q_y</span><span class="p">,</span> <span class="n">q_z</span><span class="p">,</span> <span class="n">q_w</span><span class="p">):</span>
+   <span class="n">siny_cosp</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_w</span> <span class="o">*</span> <span class="n">q_z</span> <span class="o">+</span> <span class="n">q_x</span> <span class="o">*</span> <span class="n">q_y</span><span class="p">)</span>
+   <span class="n">cosy_sinp</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">q_z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+   <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">siny_cosp</span><span class="p">,</span> <span class="n">cosy_sinp</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Normalize yaw</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">normalize_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+   <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Offset yaw</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">current_yaw</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yaw</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">yaw_start</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">overflow_counter</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Convert to quaternion to publish</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">publish_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yaw</span><span class="p">):</span>
+   <span class="n">q</span> <span class="o">=</span> <span class="n">Quaternion</span><span class="p">()</span>
+   <span class="n">q</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">yaw</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+   <span class="n">q</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">0.0</span>
+   <span class="n">q</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">0.0</span>
+   <span class="n">q</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">yaw</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+   <span class="k">return</span> <span class="n">q</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="inverse-kinematic">
+<h2>Inverse Kinematic<a class="headerlink" href="#inverse-kinematic" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">V_wheel</span> <span class="o">=</span> <span class="p">[</span>
+<span class="n">Vx</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">-</span> <span class="n">Vy</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">-</span> <span class="n">omega_z</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ly</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">),</span>
+<span class="n">Vx</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">+</span> <span class="n">Vy</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">+</span> <span class="n">omega_z</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ly</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">),</span>
+<span class="n">Vx</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">+</span> <span class="n">Vy</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">-</span> <span class="n">omega_z</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ly</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">),</span>
+<span class="n">Vx</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">-</span> <span class="n">Vy</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">+</span> <span class="n">omega_z</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ly</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">)</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation_and_configuration.html" class="btn btn-neutral float-left" title="Installation and Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="troubleshooting_guide.html" class="btn btn-neutral float-right" title="Troubleshooting Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
