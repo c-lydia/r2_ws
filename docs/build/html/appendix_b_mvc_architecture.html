@@ -50,18 +50,19 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix B: MVC Architecture</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#roles">Roles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#model">Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#view">View</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#controller">Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#conceptual-foundation-of-mvc">Conceptual foundation of MVC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#why-separation-is-architecturally-neccessary">Why Separation is architecturally neccessary</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#typical-flow">Typical flow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#benefits">Benefits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#tradeoffs">Tradeoffs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#applied-to-a-robotics-ui">Applied to a robotics UI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#implementation-hint">Implementation hint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#core-concepts">Core concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-model-authority-integrity-and-cohesion">The Model: authority, integrity, and cohesion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-view-representation-without-decision-authority">The View: representation without decision authority</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-controller-coordination-without-ownership">The Controller: coordination without ownership</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interaction-flow-and-dependency-direction">Interaction flow and dependency direction</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#analysis">Analysis</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
@@ -107,72 +108,125 @@
              
   <section id="appendix-b-mvc-architecture">
 <h1>Appendix B: MVC Architecture<a class="headerlink" href="#appendix-b-mvc-architecture" title="Link to this heading">¶</a></h1>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>Model-View-Controller (MVC) separates data, presentation, and user input into
-three roles. This separation improves maintainability by reducing coupling.</p>
-</section>
-<section id="roles">
-<h2>Roles<a class="headerlink" href="#roles" title="Link to this heading">¶</a></h2>
-<section id="model">
-<h3>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h3>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<section id="conceptual-foundation-of-mvc">
+<h3>Conceptual foundation of MVC<a class="headerlink" href="#conceptual-foundation-of-mvc" title="Link to this heading">¶</a></h3>
+<p>Model-View-Controller (MVC) is an architectural pattern developed to address a fundamental structutal problem in software engineering: the uncontrolled mixing of data management, presentation logic, and control flow. At its most basic level, MVC divides an application into three interacting components - the Model, the View, and the Controller - but the importance of this division lies not in taxonomy, but in responsibility control.</p>
+<p>In many early-stage implementations, developers tend to write code in a way that mirrors immediate functionality. A button click might validate data, update system state, call a hardware function, and update the display - all within the same method. While this appears efficient in small sysmtems, such entanglement scales poorly. The resulting architecture exhibits high coupling and low cohesion, making modification increasingly risky as the system grows.</p>
+<p>MVC addresses this by enforcing a delibarte separation:</p>
 <ul class="simple">
-<li><p>Owns the application state and business rules.</p></li>
-<li><p>Exposes operations that modify data in a controlled way.</p></li>
+<li><p>The <strong>Model</strong> owns system state and business logic</p></li>
+<li><p>The <strong>View</strong> is responsible for presenting information</p></li>
+<li><p>The <strong>Controller</strong> mediates interaction between the two</p></li>
 </ul>
+<p>This structural separation became widely adopted in large-scale frameworks such as Django and ASP.NET MVC precisely because long-term maintainability demands architectural discipline. MVC is therefore not merely a coding style; it is a strategy for managing complexity over time.</p>
 </section>
-<section id="view">
-<h3>View<a class="headerlink" href="#view" title="Link to this heading">¶</a></h3>
+<section id="why-separation-is-architecturally-neccessary">
+<h3>Why Separation is architecturally neccessary<a class="headerlink" href="#why-separation-is-architecturally-neccessary" title="Link to this heading">¶</a></h3>
+<p>To understand the necessity of MVC, consider a simplified Android example in which a movement button directly manipulates robot state:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">moveButton</span><span class="p">.</span><span class="na">setOnClickListener</span><span class="p">(</span><span class="n">v</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">robot</span><span class="p">.</span><span class="na">moveForward</span><span class="p">();</span>
+<span class="w">        </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">        </span><span class="n">batteryText</span><span class="p">.</span><span class="na">setText</span><span class="p">(</span><span class="s">&quot;Battery: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">batteryLevel</span><span class="s">&quot;);</span>
+<span class="s">});</span>
+</pre></div>
+</div>
+<p>At first glance, this implementation appears straightforward. However, several structural problems emerge:</p>
 <ul class="simple">
-<li><p>Renders the model state to the user.</p></li>
-<li><p>Should be mostly passive and not contain business logic.</p></li>
+<li><p>Battery validation logic is embedded in the UI layer</p></li>
+<li><p>Domain state is directly modified by presentation code</p></li>
+<li><p>Hardware commands are triggered from within a UI callback</p></li>
+<li><p>Display updates are interwoven with business logic</p></li>
 </ul>
+<p>This design increases coupling across unrelated concerns. If battery rules change, the UI must be modified. If hardware behavior changes, UI code must be updated. If the interface is redesigned, domain logic risks accidental modification. The aarchitecture lacks clear boundaries.</p>
+<p>MVC restructures this situation by isolating respondilities. Instead of allowing the View to manipulate state directly, it forwards input to a Controller, which delegates domain logic to the Model. This indirection may appear unnecessary in small examples, but in larger systems - especially distributed or safety-sensitive systems - it significantly reduces systemic fragility.</p>
 </section>
-<section id="controller">
-<h3>Controller<a class="headerlink" href="#controller" title="Link to this heading">¶</a></h3>
+</section>
+<section id="core-concepts">
+<h2>Core concepts<a class="headerlink" href="#core-concepts" title="Link to this heading">¶</a></h2>
+<section id="the-model-authority-integrity-and-cohesion">
+<h3>The Model: authority, integrity, and cohesion<a class="headerlink" href="#the-model-authority-integrity-and-cohesion" title="Link to this heading">¶</a></h3>
+<p>The Model is not simply a data container, it is the authoritative representation of domain knowledge. Its purpose is to maintain state consistently and enforce invariants. In a robotic system, invariants might include battery limit, sfaety constraints, or operational states such as emergency stop.</p>
+<p>Consider the following example:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RobotState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">canMove</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumeBattery</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">batterLevel</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;Battery depleted&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">amount</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">getBatteryLevel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">batteryLevel</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In this implementation, all battery-related logic resides within the Model. This centralization has several architectural implications.</p>
+<p>First, it increases cohesion. All behavior related to battery management is encapsulated in one module. Seconds, it reduces duplication; validation logic is written once rather than scattered across multiple UI handlers. third, it enhances testability. The Model can be tested independently of Android or ROS2 frameworks.</p>
+<p>Invariant centralization improves correctness guarntees. When validateion is distributed, inconsistencies are likely. When centralized, the Model becomes the single source of truth. In robotics, where state integrity affects safety, this centralization is not merely beneficial - it is essential.</p>
+</section>
+<section id="the-view-representation-without-decision-authority">
+<h3>The View: representation without decision authority<a class="headerlink" href="#the-view-representation-without-decision-authority" title="Link to this heading">¶</a></h3>
+<p>The View is responsible for rendering information and capturing user input, but it intentionally lacks decision-making authority regarding domain rules. This restriction may appear limiting, yet it is critical for architectural stability.</p>
+<p>For example:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">batterytext</span><span class="p">.</span><span class="na">setText</span><span class="p">(</span><span class="s">&quot;Battery: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">robotState</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">());</span>
+
+<span class="n">moveButton</span><span class="p">.</span><span class="na">setOnClickListener</span><span class="p">(</span><span class="n">v</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">controller</span><span class="p">.</span><span class="na">onMoveRequested</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>Here, the View displays state retrieved from the Model and forwards input to the Controller. It does not decide whether the robot can move; it merely delegates that responsibility.</p>
+<p>The argument for limiting View authority lies in change volatility. User interfaces change frequently due to usability improvements, layout redesigns, or platform evolution. If domain logic is embedded in the View, every UI modification risks altering system behavior. By isolating presentation from logic, MVC reduces change propagation and increses maintainability.</p>
+<p>This separation aligns with principles of low coupling and high cohesion, ensuring that aesthetic or usability changes do not destabilitze system rules.</p>
+</section>
+<section id="the-controller-coordination-without-ownership">
+<h3>The Controller: coordination without ownership<a class="headerlink" href="#the-controller-coordination-without-ownership" title="Link to this heading">¶</a></h3>
+<p>The Controller functions as a mediator. It receives user input from the View, invokes operations on the Model, and updates the View accordingly.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMoveRequested</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">canMove</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">robotState</span><span class="p">.</span><span class="na">consumeBattery</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">        </span><span class="n">robot</span><span class="p">.</span><span class="na">moveForward</span><span class="p">();</span>
+<span class="w">        </span><span class="n">View</span><span class="p">.</span><span class="na">updateBattery</span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The Controller does not enforce battery rules independently; it delegates that responsibility to the Model. Its role is coordination, not ownership.</p>
+<p>Howeverm Controllers are often the most vulnerable component in MVC. Developers may gradually accumulate logic within them, leading to “fat Controllers.” When Controller begin implementing validation, managing persistent state, or performing domain computations, the separation collapses.</p>
+<p>Thus, MVC requires discipling. The Controller must remain a mediator, not an alternative domain layer.</p>
+</section>
+<section id="interaction-flow-and-dependency-direction">
+<h3>Interaction flow and dependency direction<a class="headerlink" href="#interaction-flow-and-dependency-direction" title="Link to this heading">¶</a></h3>
+<p>MVC establishes a controller flow of interaction:</p>
 <ul class="simple">
-<li><p>Interprets user input and updates the model.</p></li>
-<li><p>Chooses which view to refresh or navigate to.</p></li>
+<li><p>The View captures user input</p></li>
+<li><p>The Controller interprets the request</p></li>
+<li><p>The Model performs state updates</p></li>
+<li><p>The Controller updates the View</p></li>
 </ul>
+<p>Critically, the Model does not depend on the View. This unidirectional dependency structure prevents circular references and preserves independence from presentation frameworks.</p>
+<p>In distributed Android-ROS2 systems, this separation has practical implications. The Model can represent robot state independent of Android lifecycle events. Network dirsuptions affect coordination logic but not domain integrtiy. UI crashes do not compromise robotic safety rules.</p>
+<p>Architecturally, this improves fault isolation and resilience.</p>
 </section>
 </section>
-<section id="typical-flow">
-<h2>Typical flow<a class="headerlink" href="#typical-flow" title="Link to this heading">¶</a></h2>
-<ol class="arabic simple">
-<li><p>User interacts with the View.</p></li>
-<li><p>Controller translates the action into model updates.</p></li>
-<li><p>Model updates its state and notifies views.</p></li>
-<li><p>View re-renders using the new model state.</p></li>
-</ol>
-</section>
-<section id="benefits">
-<h2>Benefits<a class="headerlink" href="#benefits" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>Clear separation of responsibilities.</p></li>
-<li><p>Easier testing of logic by isolating the model.</p></li>
-<li><p>Views can be swapped without changing the model.</p></li>
-</ul>
-</section>
-<section id="tradeoffs">
-<h2>Tradeoffs<a class="headerlink" href="#tradeoffs" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>Controllers can grow large if not structured.</p></li>
-<li><p>Requires discipline to keep business logic in the model.</p></li>
-</ul>
-</section>
-<section id="applied-to-a-robotics-ui">
-<h2>Applied to a robotics UI<a class="headerlink" href="#applied-to-a-robotics-ui" title="Link to this heading">¶</a></h2>
-<p>In a waypoint-setting UI:</p>
-<ul class="simple">
-<li><p>Model holds the waypoint list, active target, and plan ID.</p></li>
-<li><p>View renders the field, robot position, and waypoint markers.</p></li>
-<li><p>Controller translates touch events into model updates and network sends.</p></li>
-</ul>
-</section>
-<section id="implementation-hint">
-<h2>Implementation hint<a class="headerlink" href="#implementation-hint" title="Link to this heading">¶</a></h2>
-<p>Use small controllers to handle independent features (e.g., waypoint editing,
-return-to-base). This avoids a single controller that becomes a bottleneck.</p>
+<section id="analysis">
+<h2>Analysis<a class="headerlink" href="#analysis" title="Link to this heading">¶</a></h2>
+<p>While MVC improves structural calrity, it is not without cost.</p>
+<p>First, it introduces additional abstraction layers. Small projects may perceive this as unnecessary overhead. The architectural benefit emerges primarily in systems of moderate or large complexity. thus, MVC represents a trade-0ff between immediate simplicty and long-term maintainability.</p>
+<p>Second, the reliance on Controllers as coordination hubs introduces a risk of logic centralization. Without careful boundary enforcement, Controllers may grow excessively complex. This risk must be mitigated through disciplined design practices.</p>
+<p>Third, unlike reactive frameworks such as React, traditional MVC requires explicit updates to the View. This increases verbosity but provides transparency. The trade-off is between automated reactivity and explicit control.</p>
+<p>Finally, additional abstractionnlayers may introduce minor performance overhead. In robotics systems where latency matters, this must be considered. However, coupling UI directly to hardware for micro-optimizations would undermine safety and maintainability. In safety-critical environments, architectural integrity outweighs marginal performance gains.</p>
 </section>
 </section>
 
