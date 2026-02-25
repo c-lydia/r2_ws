@@ -598,14 +598,50 @@ Access modifiers
 
 In Python, there are no strict access modifiers, but by convention, a single underscore prefix (e.g., ``_attribute``) indicates that an attribute is intended for internal use (``protected``), while a double underscore prefix (e.g., ``__attribute``) triggers name mangling to make it harder to access from outside the class (``private``).
 
+.. code-block:: python
+
+    class Robot:
+        def __init__(self, name):
+            self.name = name  # public attribute
+            self._internal_state = "active"  # protected attribute
+            self.__secret_code = "1234"  # private attribute
+
+    class AdvancedRobot(Robot):
+        def reveal_secret(self):
+            return self._Robot__secret_code  # Accessing the private attribute using name mangling
+
 In Java, you can use the   ``public``, ``private``, and ``protected`` keywords to control access to class members. Additionally, Java has a default (package-private) access level when no modifier is specified, which allows access within the same package.
+
+.. code-block:: java
+
+    public class Robot {
+        public String name; // public attribute
+        protected String internalState; // protected attribute
+        private String secretCode; // private attribute
+
+        public Robot(String name) {
+            this.name = name;
+            this.internalState = "active";
+            this.secretCode = "1234";
+        }
+    }
 
 ``final`` or ``const`` keyword
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``final`` keyword in Java and the ``const`` keyword in C++ are used to indicate that a variable's value cannot be changed once it has been assigned. In Java, you can declare a variable as ``final`` to make it a constant, and in C++, you can use ``const`` to achieve the same effect. This is useful for defining constants or ensuring that certain values remain unchanged throughout the program.
 
+.. code-block:: java
+
+    public class Constants {
+        public static final double PI = 3.14159; // Constant value for PI
+    }
+
 In Python, there is no built-in keyword for constants, but by convention, variables that are meant to be constants are typically defined in uppercase letters (e.g., ``PI = 3.14``) to indicate that they should not be modified.
+
+.. code-block:: python
+
+    PI = 3.14159  # Constant value for PI (by convention, not enforced by the language)
 
 ``abstract`` keyword
 ^^^^^^^^^^^^^^^^^^^^
@@ -652,7 +688,38 @@ In Python, you can achieve similar functionality using the ``abc`` module to cre
 
 The ``virtual`` keyword is used in C++ to indicate that a method can be overridden in a derived class. This allows for dynamic dispatch, where the method that gets called is determined at runtime based on the actual type of the object, rather than the type of the reference. This is a key feature of polymorphism in C++.
 
+.. code-block:: cpp
+
+    class Vehicle {
+    public:
+        virtual void move() {
+            // Default movement behavior
+        }
+    };
+
+    class Robot : public Vehicle {
+    public:
+        void move() override {
+            // Robot-specific movement behavior
+        }
+    };
+
 In Python and Java, all methods are virtual by default, meaning they can be overridden in subclasses without needing a specific keyword. However, in Java, you can use the ``final`` keyword to prevent a method from being overridden.
+
+.. code-block:: java
+
+    public class Vehicle {
+        public void move() {
+            // Default movement behavior
+        }
+    }
+
+    public class Robot extends Vehicle {
+        @Override
+        public void move() {
+            // Robot-specific movement behavior
+        }
+    }
 
 Relationships between classes
 -----------------------------

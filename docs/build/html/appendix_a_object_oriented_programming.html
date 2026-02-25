@@ -794,12 +794,44 @@
 <li><p><strong>Protected:</strong> accessible within the class and its subclasses</p></li>
 </ul>
 <p>In Python, there are no strict access modifiers, but by convention, a single underscore prefix (e.g., <code class="docutils literal notranslate"><span class="pre">_attribute</span></code>) indicates that an attribute is intended for internal use (<code class="docutils literal notranslate"><span class="pre">protected</span></code>), while a double underscore prefix (e.g., <code class="docutils literal notranslate"><span class="pre">__attribute</span></code>) triggers name mangling to make it harder to access from outside the class (<code class="docutils literal notranslate"><span class="pre">private</span></code>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Robot</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>  <span class="c1"># public attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_state</span> <span class="o">=</span> <span class="s2">&quot;active&quot;</span>  <span class="c1"># protected attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__secret_code</span> <span class="o">=</span> <span class="s2">&quot;1234&quot;</span>  <span class="c1"># private attribute</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AdvancedRobot</span><span class="p">(</span><span class="n">Robot</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reveal_secret</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Robot__secret_code</span>  <span class="c1"># Accessing the private attribute using name mangling</span>
+</pre></div>
+</div>
 <p>In Java, you can use the   <code class="docutils literal notranslate"><span class="pre">public</span></code>, <code class="docutils literal notranslate"><span class="pre">private</span></code>, and <code class="docutils literal notranslate"><span class="pre">protected</span></code> keywords to control access to class members. Additionally, Java has a default (package-private) access level when no modifier is specified, which allows access within the same package.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Robot</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"> </span><span class="c1">// public attribute</span>
+<span class="w">    </span><span class="kd">protected</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">internalState</span><span class="p">;</span><span class="w"> </span><span class="c1">// protected attribute</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">secretCode</span><span class="p">;</span><span class="w"> </span><span class="c1">// private attribute</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">Robot</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">internalState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;active&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">secretCode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;1234&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
 <section id="final-or-const-keyword">
 <h3><code class="docutils literal notranslate"><span class="pre">final</span></code> or <code class="docutils literal notranslate"><span class="pre">const</span></code> keyword<a class="headerlink" href="#final-or-const-keyword" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">final</span></code> keyword in Java and the <code class="docutils literal notranslate"><span class="pre">const</span></code> keyword in C++ are used to indicate that a variable’s value cannot be changed once it has been assigned. In Java, you can declare a variable as <code class="docutils literal notranslate"><span class="pre">final</span></code> to make it a constant, and in C++, you can use <code class="docutils literal notranslate"><span class="pre">const</span></code> to achieve the same effect. This is useful for defining constants or ensuring that certain values remain unchanged throughout the program.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Constants</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">PI</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14159</span><span class="p">;</span><span class="w"> </span><span class="c1">// Constant value for PI</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 <p>In Python, there is no built-in keyword for constants, but by convention, variables that are meant to be constants are typically defined in uppercase letters (e.g., <code class="docutils literal notranslate"><span class="pre">PI</span> <span class="pre">=</span> <span class="pre">3.14</span></code>) to indicate that they should not be modified.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PI</span> <span class="o">=</span> <span class="mf">3.14159</span>  <span class="c1"># Constant value for PI (by convention, not enforced by the language)</span>
+</pre></div>
+</div>
 </section>
 <section id="abstract-keyword">
 <h3><code class="docutils literal notranslate"><span class="pre">abstract</span></code> keyword<a class="headerlink" href="#abstract-keyword" title="Link to this heading">¶</a></h3>
@@ -840,7 +872,36 @@
 <section id="virtual-keyword">
 <h3><code class="docutils literal notranslate"><span class="pre">virtual</span></code> keyword<a class="headerlink" href="#virtual-keyword" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">virtual</span></code> keyword is used in C++ to indicate that a method can be overridden in a derived class. This allows for dynamic dispatch, where the method that gets called is determined at runtime based on the actual type of the object, rather than the type of the reference. This is a key feature of polymorphism in C++.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Vehicle</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">move</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Default movement behavior</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Robot</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Vehicle</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">move</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Robot-specific movement behavior</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
 <p>In Python and Java, all methods are virtual by default, meaning they can be overridden in subclasses without needing a specific keyword. However, in Java, you can use the <code class="docutils literal notranslate"><span class="pre">final</span></code> keyword to prevent a method from being overridden.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Vehicle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">move</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Default movement behavior</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Robot</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Vehicle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">move</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Robot-specific movement behavior</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
 </section>
 <section id="relationships-between-classes">
