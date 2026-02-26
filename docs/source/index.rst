@@ -15,6 +15,7 @@ Core Documentation
    hardware_specification
    installation_and_configuration
    technical_reference
+   test_and_evaluation
    troubleshooting_guide
 
 
