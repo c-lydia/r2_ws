@@ -1,18 +1,22 @@
-name: Deploy Sphinx docs to GitHub Pages
+name: Test Docs Build
 
 on:
-  push:
-    branches: [ main ]
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yml'
+      - '.github/workflows/test-docs.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-deploy:
+  test-docs-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,11 +33,7 @@ jobs:
         run: |
           make html
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./docs/build/html
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+      - name: Verify build output
+        run: |
+          test -f docs/build/html/index.html
+          echo "Docs build verified successfully"

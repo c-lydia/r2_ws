@@ -3,7 +3,6 @@ log/
 .~lock.*
 
 # docs directory - ignore config files and build artifacts except the PDF
-docs/Makefile
 docs/make.bat
 docs/source/conf.py
 docs/build/latex/*
@@ -13,18 +12,11 @@ source/_static/
 source/_templates/
 
 # Root level Makefiles
-Makefile
-make.bat
+/Makefile
+/make.bat
 
 # Build directories (but not docs/build's target_setter.pdf, handled above)
 /build/
 
 # html generated
-docs/build/html/_images
-docs/build/html/_static
-docs/build/html/_sources
-docs/build/html/objects.inv
-docs/build/html/searchindex.js
-docs/build/html/.buildinfo.bak
-docs/build/html/.buildinfo
-docs/build/.doctrees/
+docs/build/html/
