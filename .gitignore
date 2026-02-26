@@ -3,7 +3,6 @@ log/
 .~lock.*
 
 # docs directory - ignore config files and build artifacts except the PDF
-docs/Makefile
 docs/make.bat
 docs/source/conf.py
 docs/build/latex/*
@@ -20,11 +19,4 @@ make.bat
 /build/
 
 # html generated
-docs/build/html/_images
-docs/build/html/_static
-docs/build/html/_sources
-docs/build/html/objects.inv
-docs/build/html/searchindex.js
-docs/build/html/.buildinfo.bak
-docs/build/html/.buildinfo
-docs/build/.doctrees/
+docs/build/html/
