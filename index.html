@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Target Setter Documentation &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Target Setter Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/index.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="target-setter-documentation">
+<h1>Target Setter Documentation<a class="headerlink" href="#target-setter-documentation" title="Link to this heading">¶</a></h1>
+<p>Welcome to the official documentation for <strong>Target Setter</strong>.
+This documentation provides system overview, installation instructions,
+technical references, and theoretical background used in the project.</p>
+<section id="core-documentation">
+<h2>Core Documentation<a class="headerlink" href="#core-documentation" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#background">Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#objective">Objective</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#scope-of-work">Scope of work</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#robot-platform">Robot platform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#sensors">Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#drive-system">Drive system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#id1">Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#compute-hardware">Compute hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#network-infrastructure">Network infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#power-system">Power system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#safety-constraints">Safety constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_specification.html#notes">Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation_and_configuration.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_and_configuration.html#workspace-setup">Workspace Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_and_configuration.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_and_configuration.html#running-the-application">Running the Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation_and_configuration.html#common-setup-pitfalls">Common Setup Pitfalls</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#waypoint-queue-and-state-machine">Waypoint queue and state machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#state-machine">State machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#communication-protocol">Communication protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#coordinate-convention-and-control-logic">Coordinate convention and control logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#control-logic">Control logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#path-planning">Path planning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#odometry-handling">Odometry handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="technical_reference.html#inverse-kinematic">Inverse Kinematic</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#communication-issues">Communication issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#motor-driver-issues">Motor/driver issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#sensor-issues">Sensor issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#app-issues">App issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#safety-emergency-stop">Safety/emergency stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#pd-controller-motion-control">PD controller/motion control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting_guide.html#low-level-hardware-checks">Low-level hardware checks</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="appendices-technical-background">
+<h2>Appendices (Technical Background)<a class="headerlink" href="#appendices-technical-background" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+<div class="docutils container" id="id1">
+<div role="list" class="citation-list">
+<div class="citation" id="id6" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]1<span class="fn-bracket">]</span></span>
+<p>Build a responsive ui with constraintlayout. Accessed: 2026-02-13. URL: <a class="reference external" href="https://developer.android.com/develop/ui/views/layout/constraint-layout">https://developer.android.com/develop/ui/views/layout/constraint-layout</a>.</p>
+</div>
+<div class="citation" id="id24" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]2<span class="fn-bracket">]</span></span>
+<p>Coordinates and transformations. Accessed: 2026-02-15. URL: <a class="reference external" href="https://motion.cs.illinois.edu/RoboticSystems/CoordinateTransformations.html">https://motion.cs.illinois.edu/RoboticSystems/CoordinateTransformations.html</a>.</p>
+</div>
+<div class="citation" id="id4" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]3<span class="fn-bracket">]</span></span>
+<p>Mvc framework – architecture. Accessed: 2026-02-13. URL: <a class="reference external" href="https://www.tutorialspoint.com/mvc_framework/mvc_framework_architecture.htm">https://www.tutorialspoint.com/mvc_framework/mvc_framework_architecture.htm</a>.</p>
+</div>
+<div class="citation" id="id5" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]4<span class="fn-bracket">]</span></span>
+<p>Model-view-viewmodel (mvvm). Accessed: 2026-02-13. URL: <a class="reference external" href="https://learn.microsoft.com/en-us/dotnet/architecture/maui/mvvm">https://learn.microsoft.com/en-us/dotnet/architecture/maui/mvvm</a>.</p>
+</div>
+<div class="citation" id="id14" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]5<span class="fn-bracket">]</span></span>
+<p>Ros 2: what is dds? Accessed: 2026-02-15. URL: <a class="reference external" href="https://community.rti.com/page/ros-2-what-dds">https://community.rti.com/page/ros-2-what-dds</a>.</p>
+</div>
+<div class="citation" id="id7" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]6<span class="fn-bracket">]</span></span>
+<p>Unidirectional link vs bidirectional link vs loopback link. May 2021. Accessed: 2026-02-13. URL: <a class="reference external" href="https://ccna-classes.com/ccna-study-resources/unidirectional-link-vs-bidirectional-link-vs-loopback-link/">https://ccna-classes.com/ccna-study-resources/unidirectional-link-vs-bidirectional-link-vs-loopback-link/</a>.</p>
+</div>
+<div class="citation" id="id17" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]7<span class="fn-bracket">]</span></span>
+<p>Interfaces. 2026. ROS 2 Documentation: Humble. URL: <a class="reference external" href="http://docs.ros.org/en/humble/Concepts/Basic/About-Interfaces.html">http://docs.ros.org/en/humble/Concepts/Basic/About-Interfaces.html</a>.</p>
+</div>
+<div class="citation" id="id15" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]8<span class="fn-bracket">]</span></span>
+<p>Nodes. 2026. ROS 2 Documentation: Humble. URL: <a class="reference external" href="https://docs.ros.org/en/humble/Concepts/Basic/About-Nodes.html">https://docs.ros.org/en/humble/Concepts/Basic/About-Nodes.html</a>.</p>
+</div>
+<div class="citation" id="id16" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]9<span class="fn-bracket">]</span></span>
+<p>Topics. 2026. ROS 2 Documentation: Humble. URL: <a class="reference external" href="https://docs.ros.org/en/humble/Concepts/Basic/About-Topics.html">https://docs.ros.org/en/humble/Concepts/Basic/About-Topics.html</a>.</p>
+</div>
+<div class="citation" id="id22" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]10<span class="fn-bracket">]</span></span>
+<p>A. Boghossian, J. Brown, and S. Zak. P, i, d, pi, pd, and pid control. Accessed: 2026-02-16. URL: <a class="reference external" href="https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Chemical_Process_Dynamics_and_Controls_(Woolf)/09:_Proportional-Integral-Derivative_(PID)_Control/9.02:_P_I_D_PI_PD_and_PID_control">https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Chemical_Process_Dynamics_and_Controls_(Woolf)/09:_Proportional-Integral-Derivative_(PID)_Control/9.02:_P_I_D_PI_PD_and_PID_control</a>.</p>
+</div>
+<div class="citation" id="id9" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]11<span class="fn-bracket">]</span></span>
+<p>P. L. Dordal. Udp transport. 2012. Accessed: 2026-02-14. URL: <a class="reference external" href="https://intronetworks.cs.luc.edu/current/html/udp.html">https://intronetworks.cs.luc.edu/current/html/udp.html</a>.</p>
+</div>
+<div class="citation" id="id20" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]12<span class="fn-bracket">]</span></span>
+<p>D. C. Karnopp, D. L. Margolis, and R. C. Rosenberg. <em>System Dynamics: Modeling, Simulation, and Control of Mechatronic Systems</em>. John Wiley &amp; Sons, 2012.</p>
+</div>
+<div class="citation" id="id13" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]13<span class="fn-bracket">]</span></span>
+<p>Huseyin Kutluca. Robot operating system 2 (ros 2) architecture. December 2020. Accessed: 2026-02-15. URL: <a class="reference external" href="https://medium.com/software-architecture-foundations/robot-operating-system-2-ros-2-architecture-731ef1867776">https://medium.com/software-architecture-foundations/robot-operating-system-2-ros-2-architecture-731ef1867776</a>.</p>
+</div>
+<div class="citation" id="id18" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]14<span class="fn-bracket">]</span></span>
+<p>B. P. Lathi. <em>Principles of Linear Systems and Signals</em>. Oxford University Press, 2 edition, 2009.</p>
+</div>
+<div class="citation" id="id19" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]15<span class="fn-bracket">]</span></span>
+<p>E. A. Lee and P. P. Varaiya. <em>Structure and Interpretation of Signals and Systems</em>. Pearson Education, 2003.</p>
+</div>
+<div class="citation" id="id27" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]16<span class="fn-bracket">]</span></span>
+<p>S. Lipschutz and M. L. Lipson. <em>Schaum’s Outline of Discrete Mathematics</em>. McGraw-Hill, 3 edition, 2007.</p>
+</div>
+<div class="citation" id="id3" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]17<span class="fn-bracket">]</span></span>
+<p>A. Nandwanya. Constraintlayout, demystified – how it really works and when you should reach for it. September 2025. Accessed: 2026-02-12. URL: <a class="reference external" href="https://androidengineers.substack.com/p/constraintlayout-demystified-how">https://androidengineers.substack.com/p/constraintlayout-demystified-how</a>.</p>
+</div>
+<div class="citation" id="id11" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]18<span class="fn-bracket">]</span></span>
+<p>S. Narayana. Cs 352 user datagram protocol. Accessed: 2026-02-14. URL: <a class="reference external" href="https://people.cs.rutgers.edu/~sn624/352-S21/lectures/transport-udp-error-detection.pdf">https://people.cs.rutgers.edu/~sn624/352-S21/lectures/transport-udp-error-detection.pdf</a>.</p>
+</div>
+<div class="citation" id="id25" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]19<span class="fn-bracket">]</span></span>
+<p>H. P. Oliveira and others. Dynamic models for omni-directional robots with 3 and 4 wheels. In <em>ICINCO</em>. 2008.</p>
+</div>
+<div class="citation" id="id26" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]20<span class="fn-bracket">]</span></span>
+<p>A. Phunopas and S. Inoue. Motion improvement of four-wheeled omnidirectional mobile robots for indoor terrain. <em>Journal of Robotics, Networking and Artificial Life</em>, 4(4):275–282, 2018.</p>
+</div>
+<div class="citation" id="id12" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]21<span class="fn-bracket">]</span></span>
+<p>A. Silberschatz, P. B. Galvin, and G. Gagne. <em>Operating System Concepts</em>. Wiley, 10 edition, 2018.</p>
+</div>
+<div class="citation" id="id23" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]22<span class="fn-bracket">]</span></span>
+<p>S. Simrock. Control theory. Accessed: 2026-02-16. URL: <a class="reference external" href="https://cds.cern.ch/record/1100534/files/p73.pdf">https://cds.cern.ch/record/1100534/files/p73.pdf</a>.</p>
+</div>
+<div class="citation" id="id2" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]23<span class="fn-bracket">]</span></span>
+<p>S. Singh. Mvc framework: a modern web application development approach and working. <em>International Research Journal of Engineering and Technology (IRJET)</em>, 7(1):51–55, January 2020. URL: <a class="reference external" href="https://www.irjet.net/archives/V7/i1/IRJET-V7I111.pdf">https://www.irjet.net/archives/V7/i1/IRJET-V7I111.pdf</a>.</p>
+</div>
+<div class="citation" id="id10" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]24<span class="fn-bracket">]</span></span>
+<p>J. Verschelde. Client/server interactions. 2017. Accessed: 2026-02-14. URL: <a class="reference external" href="https://homepages.math.uic.edu/~jan/mcs275/mcs275notes/lec27.html">https://homepages.math.uic.edu/~jan/mcs275/mcs275notes/lec27.html</a>.</p>
+</div>
+<div class="citation" id="id8" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]25<span class="fn-bracket">]</span></span>
+<p>Cisco Networking Academy. <em>CCNAv7: Introduction to Networks Companion Guide</em>. Cisco Press, Indianapolis, IN, USA, 2020.</p>
+</div>
+<div class="citation" id="id21" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>[Ref]26<span class="fn-bracket">]</span></span>
+<p>K. J. Åström. Control system design. 2002. Accessed: 2026-02-16. URL: <a class="reference external" href="https://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf">https://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf</a>.</p>
+</div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
