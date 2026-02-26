@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Troubleshooting Guide &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Appendix A: Object-Oriented Programming" href="appendix_a_object_oriented_programming.html" />
+    <link rel="prev" title="Technical Reference" href="technical_reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#communication-issues">Communication issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-doesn-t-repond-to-app-command">Symptom: robot doesn’t repond to app command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-waypoints-not-updating-edits-ignored">Symptom: waypoints not updating/edits ignored</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#motor-driver-issues">Motor/driver issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-does-not-move-or-moves-incorrectly">Symptom: robot does not move or moves incorrectly</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-moves-jerkily-or-overshoots-targets">Symptom: robot moves jerkily or overshoots targets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sensor-issues">Sensor issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-odometry-is-incorrect-robot-drifts">Symptom: odometry is incorrect/robot drifts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-reports-zero-movement-despite-motor-command">Symptom: robot reports zero movement despite motor command</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#app-issues">App issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-position-not-displayed-correctly">Symptom: robot position not displayed correctly</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-touch-input-does-not-map-to-correct-target">Symptom: touch input does not map to correct target</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#safety-emergency-stop">Safety/emergency stop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-does-not-stop-when-emergency-button-pressed">Symptom: robot does not stop when emergency button pressed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pd-controller-motion-control">PD controller/motion control</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-oscillates-around-waypoint">Symptom: robot oscillates around waypoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symptom-robot-fails-to-reach-waypoint">Symptom: robot fails to reach waypoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#low-level-hardware-checks">Low-level hardware checks</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Troubleshooting Guide</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/troubleshooting_guide.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="troubleshooting-guide">
+<h1>Troubleshooting Guide<a class="headerlink" href="#troubleshooting-guide" title="Link to this heading">¶</a></h1>
+<section id="communication-issues">
+<h2>Communication issues<a class="headerlink" href="#communication-issues" title="Link to this heading">¶</a></h2>
+<section id="symptom-robot-doesn-t-repond-to-app-command">
+<h3>Symptom: robot doesn’t repond to app command<a class="headerlink" href="#symptom-robot-doesn-t-repond-to-app-command" title="Link to this heading">¶</a></h3>
+<p><strong>Wi-Fi connectivity issues:</strong></p>
+<ul class="simple">
+<li><p>Check that the robot is connected to the correct Wi-Fi network and has a valid IP address</p></li>
+<li><p>Verify IP address of the robot matches the one configured in the app</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> on the Jetson to check network interfaces and IP configuration</p></li>
+</ul>
+<p><strong>UDP packets not received:</strong></p>
+<ul class="simple">
+<li><p>Confirm the correct port (default <code class="docutils literal notranslate"><span class="pre">5050</span></code>) is used</p></li>
+<li><p>Ensure packets are sent in <strong>Little Endian</strong> format</p></li>
+</ul>
+<p><strong>Firewall blocking UDP:</strong></p>
+<ul class="simple">
+<li><p>Disable firewall or allow UDP traffic on port 5050</p></li>
+</ul>
+</section>
+<section id="symptom-waypoints-not-updating-edits-ignored">
+<h3>Symptom: waypoints not updating/edits ignored<a class="headerlink" href="#symptom-waypoints-not-updating-edits-ignored" title="Link to this heading">¶</a></h3>
+<p><strong>Possible causes and solutions:</strong></p>
+<ul class="simple">
+<li><p>Plan ID mismatch between app and robot</p></li>
+<li><p>Edited waypoint index out of range</p></li>
+<li><p>Packet corruption: check Little Endian encoding and packet size</p></li>
+</ul>
+</section>
+</section>
+<section id="motor-driver-issues">
+<h2>Motor/driver issues<a class="headerlink" href="#motor-driver-issues" title="Link to this heading">¶</a></h2>
+<section id="symptom-robot-does-not-move-or-moves-incorrectly">
+<h3>Symptom: robot does not move or moves incorrectly<a class="headerlink" href="#symptom-robot-does-not-move-or-moves-incorrectly" title="Link to this heading">¶</a></h3>
+<p><strong>Possible causes and solutions:</strong></p>
+<ul class="simple">
+<li><p>Motor driver fuse blown: replace fuse and test</p></li>
+<li><p>Motors not powered: verify 24 V motor battery and DC-DC converter</p></li>
+<li><p>Encoder feedback lost: check encoder connections to STM32</p></li>
+<li><p>Wheels misaligned: check mecanum wheel orientation</p></li>
+<li><p>Incorrect velocities from controller: verify PD controller gains</p></li>
+</ul>
+</section>
+<section id="symptom-robot-moves-jerkily-or-overshoots-targets">
+<h3>Symptom: robot moves jerkily or overshoots targets<a class="headerlink" href="#symptom-robot-moves-jerkily-or-overshoots-targets" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Derivative term too noisy: verufy <code class="docutils literal notranslate"><span class="pre">ALPHA_D</span></code> filtering</p></li>
+<li><p>Low update frequency: check odometry reception at 10 Hz</p></li>
+<li><p>Active waypoint updates cause jumps: ensure complementary smoothing is applied</p></li>
+</ul>
+</section>
+</section>
+<section id="sensor-issues">
+<h2>Sensor issues<a class="headerlink" href="#sensor-issues" title="Link to this heading">¶</a></h2>
+<section id="symptom-odometry-is-incorrect-robot-drifts">
+<h3>Symptom: odometry is incorrect/robot drifts<a class="headerlink" href="#symptom-odometry-is-incorrect-robot-drifts" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Checks IMU calibration and orientation</p></li>
+<li><p>Verify encoder counts correspond to expected wheel rotation</p></li>
+<li><p>Confirm yaw offset calculation (<code class="docutils literal notranslate"><span class="pre">yaw_start</span></code>, <code class="docutils literal notranslate"><span class="pre">overflow_counter</span></code>)</p></li>
+<li><p>Dead reckoning integration might accumulate error: check <code class="docutils literal notranslate"><span class="pre">dt</span></code> values</p></li>
+</ul>
+</section>
+<section id="symptom-robot-reports-zero-movement-despite-motor-command">
+<h3>Symptom: robot reports zero movement despite motor command<a class="headerlink" href="#symptom-robot-reports-zero-movement-despite-motor-command" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Motor velocities not reaching STM32: verify CAN bus communication</p></li>
+<li><p>Verify low-level motor control code maaps velocities correctly to wheels</p></li>
+</ul>
+</section>
+</section>
+<section id="app-issues">
+<h2>App issues<a class="headerlink" href="#app-issues" title="Link to this heading">¶</a></h2>
+<section id="symptom-robot-position-not-displayed-correctly">
+<h3>Symptom: robot position not displayed correctly<a class="headerlink" href="#symptom-robot-position-not-displayed-correctly" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Verify coordinate conversions from meters to pixels (<code class="docutils literal notranslate"><span class="pre">metersToPxX/Y</span></code>) are correct</p></li>
+<li><p>Check <code class="docutils literal notranslate"><span class="pre">latestOdometry</span></code> is being updated from UDP socket</p></li>
+<li><p>Confirm screen boundary and field dimensions (<code class="docutils literal notranslate"><span class="pre">GAME_FIELD_X/Y</span></code>) match robot workspace</p></li>
+</ul>
+</section>
+<section id="symptom-touch-input-does-not-map-to-correct-target">
+<h3>Symptom: touch input does not map to correct target<a class="headerlink" href="#symptom-touch-input-does-not-map-to-correct-target" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Check touch, normalized, percentage, global meter conversion</p></li>
+<li><p>Ensure <code class="docutils literal notranslate"><span class="pre">boundaruView</span></code> dimensions match the UI</p></li>
+</ul>
+</section>
+</section>
+<section id="safety-emergency-stop">
+<h2>Safety/emergency stop<a class="headerlink" href="#safety-emergency-stop" title="Link to this heading">¶</a></h2>
+<section id="symptom-robot-does-not-stop-when-emergency-button-pressed">
+<h3>Symptom: robot does not stop when emergency button pressed<a class="headerlink" href="#symptom-robot-does-not-stop-when-emergency-button-pressed" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Verify emergency stop wiring and fuses are intact</p></li>
+<li><p>Ensure software checks for emergency stop signal are active</p></li>
+<li><p>Test manually by cutting power to confirm hardware response</p></li>
+</ul>
+</section>
+</section>
+<section id="pd-controller-motion-control">
+<h2>PD controller/motion control<a class="headerlink" href="#pd-controller-motion-control" title="Link to this heading">¶</a></h2>
+<section id="symptom-robot-oscillates-around-waypoint">
+<h3>Symptom: robot oscillates around waypoint<a class="headerlink" href="#symptom-robot-oscillates-around-waypoint" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Decreases <code class="docutils literal notranslate"><span class="pre">k_p_linear</span></code> or <code class="docutils literal notranslate"><span class="pre">k_p_yaw</span></code> gains</p></li>
+<li><p>Increase derivative damping (<code class="docutils literal notranslate"><span class="pre">ALPHA_D</span></code>)</p></li>
+<li><p>Verify derivative errors are computed correctly using <code class="docutils literal notranslate"><span class="pre">dt</span></code></p></li>
+</ul>
+</section>
+<section id="symptom-robot-fails-to-reach-waypoint">
+<h3>Symptom: robot fails to reach waypoint<a class="headerlink" href="#symptom-robot-fails-to-reach-waypoint" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Check <code class="docutils literal notranslate"><span class="pre">goal_tolerance_pos</span></code> and pause duration</p></li>
+<li><p>Confirm <code class="docutils literal notranslate"><span class="pre">active_target</span></code> queue is populated and not empty</p></li>
+<li><p>Make sure velocity limits allow the robot to reach target within constraints</p></li>
+</ul>
+</section>
+</section>
+<section id="low-level-hardware-checks">
+<h2>Low-level hardware checks<a class="headerlink" href="#low-level-hardware-checks" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Jetson:</strong> check power LED, CPU usage, and fan</p></li>
+<li><p><strong>STM32:</strong> verify firmware is running; check CAN message counts</p></li>
+<li><p><strong>Batteries:</strong> measure voltage under load; replace if below threshold</p></li>
+<li><p><strong>Motor drivers:</strong> check for overcurrent events or thermal shutdowns</p></li>
+</ul>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<ol class="arabic simple">
+<li><p>Always start troubleshooting from connectivity, sensors, motion, control logic</p></li>
+<li><p>Use logs from app (<code class="docutils literal notranslate"><span class="pre">sendWaypoints()</span></code>, <code class="docutils literal notranslate"><span class="pre">latestOdometry</span></code>) to verify packet flow</p></li>
+<li><p>Test motor and wheel functionality before running autonomous commands</p></li>
+<li><p>Keep fuses, emergency stop, and emergency protocols ready during testing</p></li>
+</ol>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="technical_reference.html" class="btn btn-neutral float-left" title="Technical Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="appendix_a_object_oriented_programming.html" class="btn btn-neutral float-right" title="Appendix A: Object-Oriented Programming" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

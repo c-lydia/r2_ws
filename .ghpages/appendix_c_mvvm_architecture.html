@@ -1,0 +1,343 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Appendix C: MVVM Architecture &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Appendix D: ROS2 Overview" href="appendix_d_ros2_overview.html" />
+    <link rel="prev" title="Appendix B: MVC Architecture" href="appendix_b_mvc_architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix C: MVVM Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#conceptual-foundation-of-mvvm">Conceptual Foundation of MVVM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-problem-mvvm-attempts-to-solve">The Problem MVVM Attempts to Solve</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#component-structure-of-mvvm">Component Structure of MVVM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-model">The Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-viewmodel">The ViewModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-view">The View</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#behaviors-and-analysis">Behaviors and analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-mvvm-works-operational-flow">How MVVM Works (Operational Flow)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#architectural-implications">Architectural Implications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#analysis">Analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#advantages">Advantages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#disadvantages">Disadvantages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#critical-comparison-mvc-vs-mvvm">Critical Comparison: MVC vs MVVM</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Appendix C: MVVM Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/appendix_c_mvvm_architecture.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="appendix-c-mvvm-architecture">
+<h1>Appendix C: MVVM Architecture<a class="headerlink" href="#appendix-c-mvvm-architecture" title="Link to this heading">¶</a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<section id="conceptual-foundation-of-mvvm">
+<h3>Conceptual Foundation of MVVM<a class="headerlink" href="#conceptual-foundation-of-mvvm" title="Link to this heading">¶</a></h3>
+<p>Model–View–ViewModel (MVVM) emerged as an evolution of Model–View–Controller, motivated by a practical limitation observed in GUI-based systems: as user interfaces became more dynamic and state-driven, Controllers increasingly accumulated responsibilities related to synchronization between state and presentation.</p>
+<p>MVVM restructures this coordination responsibility by introducing an intermediate abstraction — the <strong>ViewModel</strong> — whose purpose is to expose application state in a form directly consumable by the View.</p>
+<p>The fundamental claim of MVVM is that synchronization between UI and state should be declarative rather than imperative. Instead of manually instructing the View when to update, the View binds to observable state, and updates propagate automatically when that state changes.</p>
+<p>This paradigm gained prominence in UI-centric frameworks such as Angular and is formally supported in Android’s Jetpack architecture components.</p>
+<p>MVVM therefore reflects a broader architectural shift toward reactive programming and state-driven UI design.</p>
+</section>
+<section id="the-problem-mvvm-attempts-to-solve">
+<h3>The Problem MVVM Attempts to Solve<a class="headerlink" href="#the-problem-mvvm-attempts-to-solve" title="Link to this heading">¶</a></h3>
+<p>In traditional MVC, Controllers are responsible for updating the View whenever the Model changes:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMoveRequested</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">canMove</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">robotState</span><span class="p">.</span><span class="na">consumeBattery</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">        </span><span class="n">view</span><span class="p">.</span><span class="na">updateBattery</span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This explicit synchronization introduces several architectural concerns:</p>
+<ol class="arabic simple">
+<li><p>The Controller must know which UI elements depend on which state.</p></li>
+<li><p>UI updates are manually triggered, increasing cognitive load.</p></li>
+<li><p>The system risks inconsistency if update calls are forgotten.</p></li>
+<li><p>The Controller becomes responsible for presentation formatting.</p></li>
+</ol>
+<p>As applications scale and UI complexity increases, these responsibilities accumulate. The Controller gradually becomes both coordination and synchronization manager, which weakens separation of concerns.</p>
+<p>MVVM addresses this by moving synchronization logic into a ViewModel layer that exposes observable state representations.</p>
+</section>
+</section>
+<section id="component-structure-of-mvvm">
+<h2>Component Structure of MVVM<a class="headerlink" href="#component-structure-of-mvvm" title="Link to this heading">¶</a></h2>
+<section id="the-model">
+<h3>The Model<a class="headerlink" href="#the-model" title="Link to this heading">¶</a></h3>
+<p>The Model in MVVM retains the same conceptual role as in MVC: it encapsulates domain logic, invariants, and authoritative state.</p>
+<p>For example:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RobotState</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">canMove</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumeBattery</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;Battery depleted&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">batteryLevel</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">amount</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">getBatteryLevel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">batteryLevel</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The Model remains independent of Android lifecycle classes and UI frameworks. This independence preserves testability and portability.</p>
+<p>Architecturally, MVVM does not weaken domain isolation; it introduces an additional transformation layer above it.</p>
+</section>
+<section id="the-viewmodel">
+<h3>The ViewModel<a class="headerlink" href="#the-viewmodel" title="Link to this heading">¶</a></h3>
+<p>The ViewModel is the defining element of MVVM. It does not render UI and does not directly manipulate Views. Instead, it:</p>
+<ul class="simple">
+<li><p>Exposes observable state derived from the Model.</p></li>
+<li><p>Transforms domain data into UI-ready representations.</p></li>
+<li><p>Handles user intents.</p></li>
+<li><p>Survives configuration changes (in Android).</p></li>
+</ul>
+<p>Example using Android LiveData:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RobotViewModel</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">ViewModel</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">RobotState</span><span class="w"> </span><span class="n">robotState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RobotState</span><span class="p">();</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">MutableLiveData</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">batteryLiveData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">MutableLiveData</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">RobotViewModel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">batteryLiveData</span><span class="p">.</span><span class="na">setValue</span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">LiveData</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">getBatteryLevel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">batteryLiveData</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMoveRequested</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">canMove</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">robotState</span><span class="p">.</span><span class="na">consumeBattery</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">            </span><span class="n">batteryLiveData</span><span class="p">.</span><span class="na">setValue</span><span class="p">(</span><span class="n">robotState</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The ViewModel exposes state in observable form. When <cite>batteryLiveData</cite> changes, the View automatically reacts.</p>
+<p>This design removes manual synchronization responsibilities from Controllers and shifts them into a structured reactive layer.</p>
+<p>Architecturally, the ViewModel becomes a state adapter between domain logic and UI.</p>
+</section>
+<section id="the-view">
+<h3>The View<a class="headerlink" href="#the-view" title="Link to this heading">¶</a></h3>
+<p>The View binds to observable data:</p>
+<p>Here, the View does not manually fetch battery level after each action. It simply reacts to changes.</p>
+<p>This reduces boilerplate and eliminates explicit UI refresh logic.</p>
+<p>The View is therefore reactive rather than imperative.</p>
+</section>
+</section>
+<section id="behaviors-and-analysis">
+<h2>Behaviors and analysis<a class="headerlink" href="#behaviors-and-analysis" title="Link to this heading">¶</a></h2>
+<section id="how-mvvm-works-operational-flow">
+<h3>How MVVM Works (Operational Flow)<a class="headerlink" href="#how-mvvm-works-operational-flow" title="Link to this heading">¶</a></h3>
+<p>The interaction cycle in MVVM differs from MVC:</p>
+<ol class="arabic simple">
+<li><p>User interacts with View.</p></li>
+<li><p>View forwards intent to ViewModel.</p></li>
+<li><p>ViewModel invokes Model operations.</p></li>
+<li><p>Model updates state.</p></li>
+<li><p>ViewModel updates observable properties.</p></li>
+<li><p>View automatically reacts to state change.</p></li>
+</ol>
+<p>The key distinction lies in step 6: synchronization is automatic.</p>
+<p>This reactive loop reduces the risk of UI inconsistency and simplifies state management in complex interfaces.</p>
+</section>
+<section id="architectural-implications">
+<h3>Architectural Implications<a class="headerlink" href="#architectural-implications" title="Link to this heading">¶</a></h3>
+<p>MVVM shifts architectural emphasis from event-driven control flow to state-driven rendering.</p>
+<p>In MVC, the Controller orchestrates UI updates.
+In MVVM, UI updates emerge from observable state changes.</p>
+<p>This has several consequences:</p>
+<ol class="arabic simple">
+<li><p>Synchronization logic becomes centralized.</p></li>
+<li><p>Controllers are eliminated or significantly reduced.</p></li>
+<li><p>The ViewModel must carefully avoid embedding domain rules.</p></li>
+<li><p>State flows become easier to trace in unidirectional patterns.</p></li>
+</ol>
+<p>However, MVVM introduces implicit behavior. Automatic updates can obscure the exact trigger chain, making debugging more complex compared to explicit MVC calls.</p>
+<p>Thus, MVVM trades transparency for declarative convenience.</p>
+</section>
+<section id="analysis">
+<h3>Analysis<a class="headerlink" href="#analysis" title="Link to this heading">¶</a></h3>
+<section id="advantages">
+<h4>Advantages<a class="headerlink" href="#advantages" title="Link to this heading">¶</a></h4>
+<p>MVVM improves maintainability in UI-heavy applications because:</p>
+<ul class="simple">
+<li><p>It reduces repetitive update code.</p></li>
+<li><p>It minimizes the risk of stale UI state.</p></li>
+<li><p>It supports reactive rendering patterns.</p></li>
+<li><p>It integrates well with Android lifecycle management.</p></li>
+</ul>
+<p>In mobile applications with configuration changes (screen rotation, activity recreation), ViewModels provide stability across lifecycle events, reducing state loss.</p>
+</section>
+<section id="disadvantages">
+<h4>Disadvantages<a class="headerlink" href="#disadvantages" title="Link to this heading">¶</a></h4>
+<p>However, MVVM introduces complexity:</p>
+<ol class="arabic simple">
+<li><p>Observable mechanisms add abstraction overhead.</p></li>
+<li><p>Debugging reactive flows can be nontrivial.</p></li>
+<li><p>Improper separation may cause ViewModels to absorb business logic.</p></li>
+<li><p>Overuse of reactive streams may obscure control flow.</p></li>
+</ol>
+<p>Additionally, in robotics or hardware-driven systems, explicit control sometimes provides clearer reasoning about timing and state transitions. Reactive updates may introduce subtle synchronization behavior if not carefully designed.</p>
+<p>Therefore, MVVM improves UI state management but requires disciplined boundary enforcement to prevent architectural drift.</p>
+</section>
+</section>
+<section id="critical-comparison-mvc-vs-mvvm">
+<h3>Critical Comparison: MVC vs MVVM<a class="headerlink" href="#critical-comparison-mvc-vs-mvvm" title="Link to this heading">¶</a></h3>
+<p>MVC emphasizes explicit coordination and structural separation.
+MVVM emphasizes reactive state synchronization.</p>
+<p>MVC advantages:</p>
+<ul class="simple">
+<li><p>Transparent control flow</p></li>
+<li><p>Explicit update logic</p></li>
+<li><p>Easier reasoning about execution order</p></li>
+</ul>
+<p>MVVM advantages:</p>
+<ul class="simple">
+<li><p>Reduced boilerplate</p></li>
+<li><p>Automatic UI synchronization</p></li>
+<li><p>Lifecycle-aware state handling</p></li>
+</ul>
+<p>MVC risks:</p>
+<ul class="simple">
+<li><p>Fat Controllers</p></li>
+</ul>
+<p>MVVM risks:</p>
+<ul class="simple">
+<li><p>Fat ViewModels</p></li>
+<li><p>Hidden reactive chains</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="appendix_b_mvc_architecture.html" class="btn btn-neutral float-left" title="Appendix B: MVC Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="appendix_d_ros2_overview.html" class="btn btn-neutral float-right" title="Appendix D: ROS2 Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

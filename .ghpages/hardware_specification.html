@@ -1,0 +1,225 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardware Specification &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation and Configuration" href="installation_and_configuration.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Hardware Specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#robot-platform">Robot platform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sensors">Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#drive-system">Drive system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compute-hardware">Compute hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#network-infrastructure">Network infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#power-system">Power system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#safety-constraints">Safety constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Hardware Specification</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/hardware_specification.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="hardware-specification">
+<h1>Hardware Specification<a class="headerlink" href="#hardware-specification" title="Link to this heading">¶</a></h1>
+<p>This section outlines the hardware components and specifications for the mobile robot platform used in this project. The hardware selection is based on the requirements for waypoint navigation, odometry estimation, and client-server communication with an Android application.</p>
+<section id="robot-platform">
+<h2>Robot platform<a class="headerlink" href="#robot-platform" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Type:</strong> omnidirectional mobile robot with mecanum wheels (holonomic motion)</p></li>
+<li><p><strong>Dimensions:</strong> 0.5 m x 0.5 m x 0.3 m (approximately)</p></li>
+</ul>
+</section>
+<section id="sensors">
+<h2>Sensors<a class="headerlink" href="#sensors" title="Link to this heading">¶</a></h2>
+<p>The robot is equipped with 4 independent DC motors, driving 4 mecanum wheels with encoders attached for feedback. To compenstate for yaw estimation, an IMU (Inertial Measurement Unit) is included, providing angular velocity and linear acceleration data.</p>
+</section>
+<section id="drive-system">
+<h2>Drive system<a class="headerlink" href="#drive-system" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Motors:</strong> 4 DC motors, each driving on mecanum wheel</p></li>
+<li><p><strong>Motor specifications:</strong> 24 V, 200 W max, integrated encoders</p></li>
+<li><p><strong>Motor drivers:</strong> custom-built smart driver boards, each supporting 2 motors</p></li>
+<li><p><strong>Wheel type:</strong> mecanum 0.06 radius (approximately)</p></li>
+<li><p><strong>Feedback:</strong> quadrature encoders for wheel odometry</p></li>
+</ul>
+</section>
+<section id="id1">
+<h2>Sensors<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<p><strong>Inertial Measurement Unit (IMU):</strong> provides angular velocity and linear acceleration</p>
+<ul class="simple">
+<li><p><strong>Model:</strong> HFI-A9</p></li>
+<li><p><strong>Sampling rate:</strong> 100 Hz</p></li>
+</ul>
+<p><strong>Encoder:</strong> integrated with each motor; used for odometry estimation</p>
+</section>
+<section id="compute-hardware">
+<h2>Compute hardware<a class="headerlink" href="#compute-hardware" title="Link to this heading">¶</a></h2>
+<p><strong>High-level processor:</strong> NVIDIA Jetson Xavier</p>
+<ul class="simple">
+<li><p><strong>OS:</strong> Ubuntu 20.04</p></li>
+<li><p><strong>Middleware:</strong> ROS2 Foxy</p></li>
+<li><p><strong>Cooling:</strong> cooling fan</p></li>
+</ul>
+<p><strong>Low-level controller:</strong> STM32 microcontroller</p>
+<ul class="simple">
+<li><p>Interfaces with motor driver and encoders for real-time control</p></li>
+</ul>
+<p><strong>Communication:</strong> CAN bus at 115200 bps</p>
+</section>
+<section id="network-infrastructure">
+<h2>Network infrastructure<a class="headerlink" href="#network-infrastructure" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>High-level control:</strong> UDP of Wi-Fi between Android application and Jetson</p></li>
+<li><p><strong>IP configuration:</strong> dynamic IP over DHCP</p></li>
+<li><p><strong>Indoor deployment:</strong> Wi-Fi network required</p></li>
+<li><p><strong>Security:</strong> basic</p></li>
+<li><p><strong>Remote access:</strong> SSH for development and debugging purposes</p></li>
+</ul>
+</section>
+<section id="power-system">
+<h2>Power system<a class="headerlink" href="#power-system" title="Link to this heading">¶</a></h2>
+<p><strong>Motors:</strong> 24 V Li-ion battery pack, DC-DC converter (12 V) for motor drivers</p>
+<p><strong>Electronics:</strong> 12 V Li-ion battery pack, voltage regulator for Jetson, sensors, and STM32</p>
+<p><strong>Safety features:</strong></p>
+<ul class="simple">
+<li><p>Fuses on smart driver boards</p></li>
+<li><p>Overcurrent protection</p></li>
+<li><p>Emergency stop push button</p></li>
+</ul>
+</section>
+<section id="safety-constraints">
+<h2>Safety constraints<a class="headerlink" href="#safety-constraints" title="Link to this heading">¶</a></h2>
+<p><strong>Hardware-level safety:</strong> fuses and emergency stop</p>
+<p><strong>Software-level safety:</strong></p>
+<ul class="simple">
+<li><p>Speed limits enforced in control software</p></li>
+<li><p>Communication failure handling</p></li>
+<li><p>Watchdog timers for microcontroller to prevent system hang</p></li>
+</ul>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Ensure CAN bus termination is correct to prevent communication errors</p></li>
+<li><p>Confirm battery voltages before operation; over/under-voltage may damage electronics</p></li>
+<li><p>When adding additional sensors, update ROS2 launch files for proper integration</p></li>
+<li><p>For software testing, always use the emergency stop and verify motor driver fuses</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation_and_configuration.html" class="btn btn-neutral float-right" title="Installation and Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Appendix Q: CAN Bus &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Appendix P: Complementary Filtering" href="appendix_p_complementary_filtering.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix Q: CAN Bus</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#frame-structure">Frame structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#arbitration">Arbitration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bitrate-and-timing">Bitrate and timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#error-handling">Error handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#classic-can-vs-can-fd">Classic CAN vs CAN FD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#applied-to-robotics">Applied to robotics</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Appendix Q: CAN Bus</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/appendix_q_can_bus.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="appendix-q-can-bus">
+<h1>Appendix Q: CAN Bus<a class="headerlink" href="#appendix-q-can-bus" title="Link to this heading">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>Controller Area Network (CAN) is a robust bus protocol used in automotive and
+robotic systems for reliable device communication.</p>
+</section>
+<section id="frame-structure">
+<h2>Frame structure<a class="headerlink" href="#frame-structure" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Identifier: arbitration and message priority.</p></li>
+<li><p>Data length: number of bytes (0 to 8 for classic CAN).</p></li>
+<li><p>Data: payload bytes.</p></li>
+<li><p>CRC: error detection.</p></li>
+</ul>
+</section>
+<section id="arbitration">
+<h2>Arbitration<a class="headerlink" href="#arbitration" title="Link to this heading">¶</a></h2>
+<p>CAN uses non-destructive bitwise arbitration. The lowest identifier wins bus
+access without corrupting messages.</p>
+</section>
+<section id="bitrate-and-timing">
+<h2>Bitrate and timing<a class="headerlink" href="#bitrate-and-timing" title="Link to this heading">¶</a></h2>
+<p>All nodes must share the same bitrate and timing parameters. Mismatched timing
+causes errors and bus-off states.</p>
+</section>
+<section id="error-handling">
+<h2>Error handling<a class="headerlink" href="#error-handling" title="Link to this heading">¶</a></h2>
+<p>CAN includes error counters and automatic retransmission. Persistent errors
+can place a node into a bus-off state until recovery.</p>
+</section>
+<section id="classic-can-vs-can-fd">
+<h2>Classic CAN vs CAN FD<a class="headerlink" href="#classic-can-vs-can-fd" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Classic CAN: 8-byte payload limit.</p></li>
+<li><p>CAN FD: larger payload and higher data phase bitrate.</p></li>
+</ul>
+</section>
+<section id="applied-to-robotics">
+<h2>Applied to robotics<a class="headerlink" href="#applied-to-robotics" title="Link to this heading">¶</a></h2>
+<p>CAN is often used for motor controllers and sensor modules that require robust
+communication in noisy electrical environments.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="appendix_p_complementary_filtering.html" class="btn btn-neutral float-left" title="Appendix P: Complementary Filtering" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
