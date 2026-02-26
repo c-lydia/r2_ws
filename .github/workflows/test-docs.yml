@@ -8,6 +8,9 @@ on:
       - '.github/workflows/test-docs.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-docs-build:
     runs-on: ubuntu-latest
