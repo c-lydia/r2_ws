@@ -1,60 +1,236 @@
 Appendix C: MVVM Architecture
 =============================
 
-Overview
---------
-
-Model-View-ViewModel (MVVM) emphasizes data binding between view and view-model.
-It is common in UI frameworks with declarative views.
-
-Roles
------
-
-Model
-^^^^^
-
-- Domain data and business rules.
-- Independent of UI technologies.
-
-View
-^^^^
-
-- UI elements and layout.
-- Binds directly to view-model properties.
-
-ViewModel
-^^^^^^^^^
-
-- Adapts model data into UI-friendly formats.
-- Exposes commands or actions that the view can invoke.
-
-Data binding
+Introduction
 ------------
 
-Bindings update the UI when model data changes, and optionally update the model
-when the user edits the UI. This reduces glue code but requires careful state
-management.
+Conceptual Foundation of MVVM
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Benefits
---------
+Model–View–ViewModel (MVVM) emerged as an evolution of Model–View–Controller, motivated by a practical limitation observed in GUI-based systems: as user interfaces became more dynamic and state-driven, Controllers increasingly accumulated responsibilities related to synchronization between state and presentation.
 
-- Strong separation between view and logic.
-- Easier to test view-model behavior.
-- Reduced UI boilerplate.
+MVVM restructures this coordination responsibility by introducing an intermediate abstraction — the **ViewModel** — whose purpose is to expose application state in a form directly consumable by the View.
 
-Tradeoffs
----------
+The fundamental claim of MVVM is that synchronization between UI and state should be declarative rather than imperative. Instead of manually instructing the View when to update, the View binds to observable state, and updates propagate automatically when that state changes.
 
-- Overuse of bindings can make data flow hard to trace.
-- View-models can become too large without clear boundaries.
+This paradigm gained prominence in UI-centric frameworks such as Angular and is formally supported in Android’s Jetpack architecture components.
 
-Applied to target setting
--------------------------
+MVVM therefore reflects a broader architectural shift toward reactive programming and state-driven UI design.
 
-A view-model might expose:
+The Problem MVVM Attempts to Solve
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A list of waypoints as UI-friendly points.
-- A selected waypoint index.
-- Commands for send, edit, and return actions.
+In traditional MVC, Controllers are responsible for updating the View whenever the Model changes:
 
-This allows the view to remain simple and focused on rendering and input.
+.. code-block:: java
+
+    public void onMoveRequested() {
+        if (robotState.canMove()) {
+            robotState.consumeBattery(5);
+            view.updateBattery(robotState.getBatteryLevel());
+        }
+    }
+
+This explicit synchronization introduces several architectural concerns:
+
+1. The Controller must know which UI elements depend on which state.
+2. UI updates are manually triggered, increasing cognitive load.
+3. The system risks inconsistency if update calls are forgotten.
+4. The Controller becomes responsible for presentation formatting.
+
+As applications scale and UI complexity increases, these responsibilities accumulate. The Controller gradually becomes both coordination and synchronization manager, which weakens separation of concerns.
+
+MVVM addresses this by moving synchronization logic into a ViewModel layer that exposes observable state representations.
+
+Component Structure of MVVM
+---------------------------
+
+The Model
+^^^^^^^^^
+
+The Model in MVVM retains the same conceptual role as in MVC: it encapsulates domain logic, invariants, and authoritative state.
+
+For example:
+
+.. code-block:: java
+
+    public class RobotState {
+
+        private int batteryLevel = 100;
+
+        public boolean canMove() {
+            return batteryLevel > 10;
+        }
+
+        public void consumeBattery(int amount) {
+            if (batteryLevel - amount < 0) {
+                throw new IllegalStateException("Battery depleted");
+            }
+            batteryLevel -= amount;
+        }
+
+        public int getBatteryLevel() {
+            return batteryLevel;
+        }
+    }
+
+The Model remains independent of Android lifecycle classes and UI frameworks. This independence preserves testability and portability.
+
+Architecturally, MVVM does not weaken domain isolation; it introduces an additional transformation layer above it.
+
+The ViewModel
+^^^^^^^^^^^^^
+
+The ViewModel is the defining element of MVVM. It does not render UI and does not directly manipulate Views. Instead, it:
+
+* Exposes observable state derived from the Model.
+* Transforms domain data into UI-ready representations.
+* Handles user intents.
+* Survives configuration changes (in Android).
+
+Example using Android LiveData:
+
+.. code-block:: java
+
+    public class RobotViewModel extends ViewModel {
+
+        private RobotState robotState = new RobotState();
+        private MutableLiveData<Integer> batteryLiveData = new MutableLiveData<>();
+
+        public RobotViewModel() {
+            batteryLiveData.setValue(robotState.getBatteryLevel());
+        }
+
+        public LiveData<Integer> getBatteryLevel() {
+            return batteryLiveData;
+        }
+
+        public void onMoveRequested() {
+            if (robotState.canMove()) {
+                robotState.consumeBattery(5);
+                batteryLiveData.setValue(robotState.getBatteryLevel());
+            }
+        }
+    }
+
+
+The ViewModel exposes state in observable form. When `batteryLiveData` changes, the View automatically reacts.
+
+This design removes manual synchronization responsibilities from Controllers and shifts them into a structured reactive layer.
+
+Architecturally, the ViewModel becomes a state adapter between domain logic and UI.
+
+The View
+^^^^^^^^
+
+The View binds to observable data:
+
+.. code-block:: java
+
+    viewModel.getBatteryLevel().observe(this, level -> {
+        batteryText.setText("Battery: " + level);
+    });
+
+    moveButton.setOnClickListener(v -> {
+        viewModel.onMoveRequested();
+    });
+
+Here, the View does not manually fetch battery level after each action. It simply reacts to changes.
+
+This reduces boilerplate and eliminates explicit UI refresh logic.
+
+The View is therefore reactive rather than imperative.
+
+Behaviors and analysis
+----------------------
+
+How MVVM Works (Operational Flow)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The interaction cycle in MVVM differs from MVC:
+
+1. User interacts with View.
+2. View forwards intent to ViewModel.
+3. ViewModel invokes Model operations.
+4. Model updates state.
+5. ViewModel updates observable properties.
+6. View automatically reacts to state change.
+
+The key distinction lies in step 6: synchronization is automatic.
+
+This reactive loop reduces the risk of UI inconsistency and simplifies state management in complex interfaces.
+
+Architectural Implications
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+MVVM shifts architectural emphasis from event-driven control flow to state-driven rendering.
+
+In MVC, the Controller orchestrates UI updates.
+In MVVM, UI updates emerge from observable state changes.
+
+This has several consequences:
+
+1. Synchronization logic becomes centralized.
+2. Controllers are eliminated or significantly reduced.
+3. The ViewModel must carefully avoid embedding domain rules.
+4. State flows become easier to trace in unidirectional patterns.
+
+However, MVVM introduces implicit behavior. Automatic updates can obscure the exact trigger chain, making debugging more complex compared to explicit MVC calls.
+
+Thus, MVVM trades transparency for declarative convenience.
+
+Analysis
+^^^^^^^^
+
+Advantages
+~~~~~~~~~~
+
+MVVM improves maintainability in UI-heavy applications because:
+
+* It reduces repetitive update code.
+* It minimizes the risk of stale UI state.
+* It supports reactive rendering patterns.
+* It integrates well with Android lifecycle management.
+
+In mobile applications with configuration changes (screen rotation, activity recreation), ViewModels provide stability across lifecycle events, reducing state loss.
+
+Disadvantages
+~~~~~~~~~~~~~
+
+However, MVVM introduces complexity:
+
+1. Observable mechanisms add abstraction overhead.
+2. Debugging reactive flows can be nontrivial.
+3. Improper separation may cause ViewModels to absorb business logic.
+4. Overuse of reactive streams may obscure control flow.
+
+Additionally, in robotics or hardware-driven systems, explicit control sometimes provides clearer reasoning about timing and state transitions. Reactive updates may introduce subtle synchronization behavior if not carefully designed.
+
+Therefore, MVVM improves UI state management but requires disciplined boundary enforcement to prevent architectural drift.
+
+Critical Comparison: MVC vs MVVM
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+MVC emphasizes explicit coordination and structural separation.
+MVVM emphasizes reactive state synchronization.
+
+MVC advantages:
+
+* Transparent control flow
+* Explicit update logic
+* Easier reasoning about execution order
+
+MVVM advantages:
+
+* Reduced boilerplate
+* Automatic UI synchronization
+* Lifecycle-aware state handling
+
+MVC risks:
+
+* Fat Controllers
+
+MVVM risks:
+
+* Fat ViewModels
+* Hidden reactive chains
