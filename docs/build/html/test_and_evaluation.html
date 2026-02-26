@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test and Evaluation &mdash; target_setter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting Guide" href="troubleshooting_guide.html" />
+    <link rel="prev" title="Technical Reference" href="technical_reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            target_setter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware_specification.html">Hardware Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Test and Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#test-setup">Test Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#communication-test">Communication Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#navigation-accuracy-test">Navigation Accuracy Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#waypoint-sequence-test">Waypoint Sequence Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#waypoint-editing-test">Waypoint Editing Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#return-function-test">Return Function Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#known-limitations">Known Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_l_pid_control.html">Appendix L: PID Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_m_localization.html">Appendix M: Localization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_n_odometry.html">Appendix N: Odometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_o_waypoint_navigation.html">Appendix O: Waypoint Navigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_p_complementary_filtering.html">Appendix P: Complementary Filtering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_q_can_bus.html">Appendix Q: CAN Bus</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">target_setter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Test and Evaluation</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/test_and_evaluation.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="test-and-evaluation">
+<h1>Test and Evaluation<a class="headerlink" href="#test-and-evaluation" title="Link to this heading">¶</a></h1>
+<p>This section presents the test procedures and evaluation results for the waypoint navigation system, covering system integration, navigation accuracy, communication reliability, and identified limitations.</p>
+<section id="test-setup">
+<h2>Test Setup<a class="headerlink" href="#test-setup" title="Link to this heading">¶</a></h2>
+<p>The system was tested in an indoor environment with the following configuration:</p>
+<ul class="simple">
+<li><p><strong>Robot:</strong> omnidirectional mecanum-wheel mobile robot (0.5 m × 0.5 m)</p></li>
+<li><p><strong>Controller:</strong> Android application (Target Setter) running on a mobile device</p></li>
+<li><p><strong>Communication:</strong> UDP over Wi-Fi (port 5050)</p></li>
+<li><p><strong>ROS2 middleware:</strong> running on NVIDIA Jetson Xavier (Ubuntu 20.04, ROS2 Foxy)</p></li>
+<li><p><strong>Field dimensions:</strong> configurable via the app; tests performed on a known-size floor area</p></li>
+</ul>
+<img alt="System Overview" src="_images/system_overview.png" />
+</section>
+<section id="communication-test">
+<h2>Communication Test<a class="headerlink" href="#communication-test" title="Link to this heading">¶</a></h2>
+<p>Objective: verify that waypoints, edit commands, and return signals sent from the app are correctly received and processed by the robot.</p>
+<p>Results:</p>
+<ul class="simple">
+<li><p>UDP waypoint packets were received and parsed correctly by the robot when the robot and app were on the same Wi-Fi network</p></li>
+<li><p>Edit waypoint packets were successfully applied when the plan ID matched the active plan</p></li>
+<li><p>Return signal was received and the robot correctly re-executed navigation toward the previously visited waypoint</p></li>
+<li><p>No packet loss was observed at normal sending frequency under typical indoor Wi-Fi conditions</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Communication was unreliable when the robot moved beyond the Wi-Fi coverage area or when the network was congested. Packet loss did not cause a crash but could result in missed waypoints.</p>
+</div>
+</section>
+<section id="navigation-accuracy-test">
+<h2>Navigation Accuracy Test<a class="headerlink" href="#navigation-accuracy-test" title="Link to this heading">¶</a></h2>
+<p>Objective: measure the positional accuracy of the robot when navigating to waypoints specified through the app.</p>
+<p>Procedure:</p>
+<ol class="arabic simple">
+<li><p>Set a waypoint at a known location on the field using the app</p></li>
+<li><p>Command the robot to navigate to the waypoint</p></li>
+<li><p>Measure the final position of the robot relative to the target</p></li>
+</ol>
+<p>Results:</p>
+<ul class="simple">
+<li><p>The robot consistently arrived within approximately <strong>5–10 cm</strong> of the target position under nominal conditions</p></li>
+<li><p>Yaw alignment at the final waypoint was typically within <strong>±0.1–0.2 rad</strong> of the desired heading</p></li>
+<li><p>Positional error increased when the robot travelled longer distances due to odometry drift</p></li>
+<li><p>Arrival detection (<code class="docutils literal notranslate"><span class="pre">goal_tolerance_pos</span> <span class="pre">=</span> <span class="pre">0.05</span> <span class="pre">m</span></code>) functioned correctly in most trials; occasional false arrivals were observed when the robot oscillated near the boundary of the tolerance zone</p></li>
+</ul>
+</section>
+<section id="waypoint-sequence-test">
+<h2>Waypoint Sequence Test<a class="headerlink" href="#waypoint-sequence-test" title="Link to this heading">¶</a></h2>
+<p>Objective: verify that the robot correctly executes a sequence of waypoints in order.</p>
+<p>Procedure:</p>
+<ol class="arabic simple">
+<li><p>Define multiple waypoints (3–5) on the app</p></li>
+<li><p>Send all waypoints at once using the Send button</p></li>
+<li><p>Observe robot navigation from waypoint to waypoint</p></li>
+</ol>
+<p>Results:</p>
+<ul class="simple">
+<li><p>The robot successfully navigated through all waypoints in the defined sequence</p></li>
+<li><p>Each waypoint was held for the configured pause duration before proceeding to the next</p></li>
+<li><p>The waypoint queue was correctly emptied upon completion of the sequence</p></li>
+</ul>
+</section>
+<section id="waypoint-editing-test">
+<h2>Waypoint Editing Test<a class="headerlink" href="#waypoint-editing-test" title="Link to this heading">¶</a></h2>
+<p>Objective: confirm that live edits to an active waypoint are applied smoothly without causing abrupt robot motion.</p>
+<p>Procedure:</p>
+<ol class="arabic simple">
+<li><p>Command the robot toward an active waypoint</p></li>
+<li><p>Edit the waypoint position using the Edit function in the app while the robot is moving</p></li>
+<li><p>Observe the robot’s response</p></li>
+</ol>
+<p>Results:</p>
+<ul class="simple">
+<li><p>The robot smoothly transitioned to the updated target using complementary filtering</p></li>
+<li><p>No sudden jumps in robot motion were observed during editing</p></li>
+<li><p>The plan ID mechanism correctly prevented stale edit packets from being applied to a new plan</p></li>
+</ul>
+</section>
+<section id="return-function-test">
+<h2>Return Function Test<a class="headerlink" href="#return-function-test" title="Link to this heading">¶</a></h2>
+<p>Objective: verify the return-to-previous-waypoint behavior.</p>
+<p>Procedure:</p>
+<ol class="arabic simple">
+<li><p>Navigate the robot through at least one waypoint</p></li>
+<li><p>Press the Return button on the app</p></li>
+<li><p>Verify the robot returns to the last visited waypoint</p></li>
+</ol>
+<p>Results:</p>
+<ul class="simple">
+<li><p>The robot correctly returned to the most recently visited waypoint in all test runs</p></li>
+<li><p>The return state was maintained until the robot reached the target or a new waypoint was sent</p></li>
+</ul>
+</section>
+<section id="known-limitations">
+<h2>Known Limitations<a class="headerlink" href="#known-limitations" title="Link to this heading">¶</a></h2>
+<p>The following limitations were identified during testing:</p>
+<ul class="simple">
+<li><p><strong>Odometry drift:</strong> positional error accumulates over time due to wheel slip and integration errors. Errors of several centimetres were observed after long navigation sequences.</p></li>
+<li><p><strong>Yaw accuracy:</strong> orientation error of a few tenths of a radian was observed, particularly after sharp turns. This affects the accuracy of the global-to-local frame transformation.</p></li>
+<li><p><strong>App update frequency:</strong> the app UI could not reliably handle odometry updates at frequencies much higher than 10 Hz; at higher rates, the display lagged noticeably.</p></li>
+<li><p><strong>No launch file:</strong> in the current version, each ROS2 node must be started manually.</p></li>
+<li><p><strong>No emergency stop in the app:</strong> the software-level emergency stop is only available via hardware button on the robot.</p></li>
+<li><p><strong>Single-source locking:</strong> the robot locks to the first app that connects; reconnection requires re-binding.</p></li>
+</ul>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h2>
+<p>The waypoint navigation system met its core objectives: the robot reliably receives waypoint commands from the Android app, navigates to target positions with centimetre-level accuracy under nominal conditions, and supports live waypoint editing and return navigation. Identified limitations—primarily odometry drift and yaw inaccuracy—are expected in a system relying solely on wheel odometry and IMU integration without sensor fusion, and are noted as targets for future improvement.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="technical_reference.html" class="btn btn-neutral float-left" title="Technical Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="troubleshooting_guide.html" class="btn btn-neutral float-right" title="Troubleshooting Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chheng Lydiya.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

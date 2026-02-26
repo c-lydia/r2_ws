@@ -7,17 +7,17 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Technical Reference &mdash; target_setter 1.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/documentation_options.js?v=f2a433a1"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Troubleshooting Guide" href="troubleshooting_guide.html" />
+    <link rel="next" title="Test and Evaluation" href="test_and_evaluation.html" />
     <link rel="prev" title="Installation and Configuration" href="installation_and_configuration.html" /> 
 </head>
 
@@ -101,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#inverse-kinematic">Inverse Kinematic</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="test_and_evaluation.html">Test and Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
 </ul>
 <ul>
@@ -628,7 +629,7 @@ Pixels on UI → Display robot position
 <ul class="simple">
 <li><p>Calculate yaw from quaternion</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculate_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_x</span><span class="p">,</span> <span class="n">q_y</span><span class="p">,</span> <span class="n">q_z</span><span class="p">,</span> <span class="n">q_w</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">calculate_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_x</span><span class="p">,</span> <span class="n">q_y</span><span class="p">,</span> <span class="n">q_z</span><span class="p">,</span> <span class="n">q_w</span><span class="p">):</span>
    <span class="n">siny_cosp</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_w</span> <span class="o">*</span> <span class="n">q_z</span> <span class="o">+</span> <span class="n">q_x</span> <span class="o">*</span> <span class="n">q_y</span><span class="p">)</span>
    <span class="n">cosy_sinp</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">q_z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">siny_cosp</span><span class="p">,</span> <span class="n">cosy_sinp</span><span class="p">)</span>
@@ -637,7 +638,7 @@ Pixels on UI → Display robot position
 <ul class="simple">
 <li><p>Normalize yaw</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">normalize_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">normalize_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -650,7 +651,7 @@ Pixels on UI → Display robot position
 <ul class="simple">
 <li><p>Convert to quaternion to publish</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">publish_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yaw</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">publish_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yaw</span><span class="p">):</span>
    <span class="n">q</span> <span class="o">=</span> <span class="n">Quaternion</span><span class="p">()</span>
    <span class="n">q</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">yaw</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
    <span class="n">q</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -679,7 +680,7 @@ Pixels on UI → Display robot position
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="installation_and_configuration.html" class="btn btn-neutral float-left" title="Installation and Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="troubleshooting_guide.html" class="btn btn-neutral float-right" title="Troubleshooting Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="test_and_evaluation.html" class="btn btn-neutral float-right" title="Test and Evaluation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
