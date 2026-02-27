@@ -8,7 +8,7 @@ technical references, and theoretical background used in the project.
 Repository
 ----------
 
-- GitHub: https://github.com/c-lydia/r2_ws
+- GitHub: https://github.com/c-lydia/r2_ws.git
 
 Core Documentation
 ------------------
