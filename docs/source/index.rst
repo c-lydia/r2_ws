@@ -5,6 +5,11 @@ Welcome to the official documentation for **Target Setter**.
 This documentation provides system overview, installation instructions,
 technical references, and theoretical background used in the project.
 
+Repository
+----------
+
+- GitHub: https://github.com/c-lydia/r2_ws
+
 Core Documentation
 ------------------
 
