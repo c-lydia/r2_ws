@@ -107,7 +107,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Appendix C: MVVM Architecture</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/c-lydia/r2_ws/blob/main/docs/source/appendix_c_mvvm_architecture.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/c-lydia/r2_ws/blob/maindocs/source/appendix_c_mvvm_architecture.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -218,6 +218,15 @@
 <section id="the-view">
 <h3>The View<a class="headerlink" href="#the-view" title="Link to this heading">¶</a></h3>
 <p>The View binds to observable data:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">viewModel</span><span class="p">.</span><span class="na">getBatteryLevel</span><span class="p">().</span><span class="na">observe</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">batteryText</span><span class="p">.</span><span class="na">setText</span><span class="p">(</span><span class="s">&quot;Battery: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">level</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="n">moveButton</span><span class="p">.</span><span class="na">setOnClickListener</span><span class="p">(</span><span class="n">v</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">viewModel</span><span class="p">.</span><span class="na">onMoveRequested</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+</div>
 <p>Here, the View does not manually fetch battery level after each action. It simply reacts to changes.</p>
 <p>This reduces boilerplate and eliminates explicit UI refresh logic.</p>
 <p>The View is therefore reactive rather than imperative.</p>

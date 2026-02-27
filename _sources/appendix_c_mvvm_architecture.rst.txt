@@ -125,7 +125,7 @@ The View
 
 The View binds to observable data:
 
-.. coe-block:: java
+.. code-block:: java
 
     viewModel.getBatteryLevel().observe(this, level -> {
         batteryText.setText("Battery: " + level);
