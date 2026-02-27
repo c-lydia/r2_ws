@@ -80,7 +80,7 @@ html_context = {
     'github_user': 'c-lydia',
     'github_repo': 'r2_ws',
     'github_version': 'main',
-    'conf_py_path': '/docs/source/',  # Path in the repo to the docs root
+    'conf_py_path': 'docs/source/',  # Path in the repo to the docs root
 }
 
 
