@@ -72,6 +72,9 @@ except Exception:
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_js_files = [
+    'fix_github_link.js',
+]
 
 # Enable "Edit on GitHub" / repository links in the HTML output.
 # Replace the placeholders below with your GitHub username and repository name.
