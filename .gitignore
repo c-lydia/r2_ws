@@ -2,29 +2,23 @@
 log/
 .~lock.*
 
-# docs directory - ignore config files and build artifacts except the PDF
+# docs directory - ignore config files and build artifacts
 docs/Makefile
 docs/make.bat
 docs/source/conf.py
-docs/build/latex/*
-!docs/build/latex/target_setter.pdf
-docs/build/doctrees/*
-source/_static/
-source/_templates/
+docs/build/
+docs/backups/
+docs/texput.log
 
 # Root level Makefiles
 Makefile
 make.bat
 
-# Build directories (but not docs/build's target_setter.pdf, handled above)
+# Root level leftover source directory
+source/
+
+# Build directories
 /build/
 
-# html generated
-docs/build/html/_images
-docs/build/html/_static
-docs/build/html/_sources
-docs/build/html/objects.inv
-docs/build/html/searchindex.js
-docs/build/html/.buildinfo.bak
-docs/build/html/.buildinfo
-docs/build/.doctrees/
+# GitHub Pages build output directory
+.ghpages/
