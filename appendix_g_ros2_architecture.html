@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Appendix H: UDP" href="appendix_h_udp.html" />
-    <link rel="prev" title="Appendix F: Monolithic Architecture" href="appendix_f_monolithic_architecture.html" /> 
+    <link rel="prev" title="Appendix F: Monolithic Architecture" href="appendix_e_monolithic_architecture.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,21 +46,43 @@
 <li class="toctree-l1"><a class="reference internal" href="installation_and_configuration.html">Installation and Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="technical_reference.html">Technical Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting_guide.html">Troubleshooting Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update_log.html">Update Log</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="appendix_a_object_oriented_programming.html">Appendix A: Object-Oriented Programming</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix_d_ros2_overview.html">Appendix D: ROS2 Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix_e_distributed_systems.html">Appendix E: Distributed Systems</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix_f_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_d_distributed_systems.html">Appendix E: Distributed Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_e_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix G: ROS2 Architecture</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#layered-structure">Layered structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#executors">Executors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#composition">Composition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#lifecycle-nodes">Lifecycle nodes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dds-details">DDS details</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#best-practices">Best practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-robotics-needs-middleware">Why robotics needs middleware</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-challenges-of-distributed-robotics">The challenges of distributed robotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-middleware-functions">Core middleware functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#communication-models-in-distributed-systems">Communication models in distributed systems</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#shared-memory">Shared memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mechanisms">Mechanisms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#why">Why</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#challenges">challenges</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-procedure-calls-rpc">Remote Procedure Calls (RPC)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mechanism">Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Why</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Challenges</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#publish-subscribe">Publish-Subscribe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Why</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">Challenges</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#comparative-discussion">Comparative discussion</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
@@ -91,8 +113,8 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Appendix G: ROS2 Architecture</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/c-lydia/r2_ws" target="_blank" rel="noopener"> Repository</a>
-            </li>
+              <a href="https://github.com/c-lydia/r2_ws/blob/maindocs/source/appendix_g_ros2_architecture.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
   </ul>
   <hr/>
 </div>
@@ -101,44 +123,136 @@
              
   <section id="appendix-g-ros2-architecture">
 <h1>Appendix G: ROS2 Architecture<a class="headerlink" href="#appendix-g-ros2-architecture" title="Link to this heading">¶</a></h1>
-<section id="layered-structure">
-<h2>Layered structure<a class="headerlink" href="#layered-structure" title="Link to this heading">¶</a></h2>
-<p>ROS2 is built as a stack of layers:</p>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<p>Modern robotic systems are inherently distributed, modular, and real-timeconstrained. Unlike traditional software, a robot is not a monolithic program; it is composed of sensors, algorithms, control loops, actuators, and supervisory components. Each of these components may operate:</p>
 <ul class="simple">
-<li><p>Client libraries: rclcpp (C++), rclpy (Python)</p></li>
-<li><p>ROS client library: rcl</p></li>
-<li><p>Middleware interface: rmw</p></li>
-<li><p>DDS implementation: Fast DDS, Cyclone DDS, or Connext</p></li>
+<li><p>At different frequencies</p></li>
+<li><p>On different processors</p></li>
+<li><p>With different languages</p></li>
+<li><p>Across different machines</p></li>
+</ul>
+<p>The immediate implication is that direct coupling of these components quickly becomes unmanageable. Simple mechanisms like shared memory or ad-hoc TCP sockets fail to scale and cannot guarantee correctness under timing constraints.</p>
+<p>Robotics cannot be treates as standard software engineering because physical embodiment imposes temporal correctness requirements. Missing a deadline may not just degrade performance; it can compromise safety. Middleware in robotics is therefore not a convenience, bit a necessity.</p>
+<p>The Robot Operating System (ROS) emerged to address these issues. ROS 1 provided modularity and message-oriented design but relied on a centralized master node, best-effort TCP transport, and had limited real-time capabilities. ROS 2 represents a re-conception of middleware, emphasizing distributes discovery, data-centric communication, deterministic-enabling design, and integrated security. This chapter builds from first principles to examine why ROS 2 is architectured the way it is, and critically analyzes its ability to support real-time robotic systems.</p>
+</section>
+<section id="why-robotics-needs-middleware">
+<h2>Why robotics needs middleware<a class="headerlink" href="#why-robotics-needs-middleware" title="Link to this heading">¶</a></h2>
+<section id="the-challenges-of-distributed-robotics">
+<h3>The challenges of distributed robotics<a class="headerlink" href="#the-challenges-of-distributed-robotics" title="Link to this heading">¶</a></h3>
+<p>A UAV stabilization system illustrates the challenge: IMU sensors stream data at hundreds of herts, control loops compute corrections, and actuators apply forces - all in a slightly synchronized loop. Without middleware:</p>
+<ul class="simple">
+<li><p>Each node must know addresses and protcols of every other node</p></li>
+<li><p>Temporal guarantees must be manually ensured across heterogeneous platforms</p></li>
+<li><p>Scaling to multiple robots multiplies communication complexity</p></li>
+</ul>
+<p>These challenges highlight that middleware must do more than “send messages”. It must provide a structural framework to manage distribution =, temporal constraints, and modular evolution.</p>
+</section>
+<section id="core-middleware-functions">
+<h3>Core middleware functions<a class="headerlink" href="#core-middleware-functions" title="Link to this heading">¶</a></h3>
+<p>Middleware solves three foundational problems:</p>
+<ul class="simple">
+<li><p><strong>Discovery:</strong> nodes must find each ither dynamicallt. Hardcoding endpoints is brittle and unscalable.</p></li>
+<li><p><strong>Communication:</strong> nodes must exchange data reliably. ROS 1’s TCP-based transport often relied on best-effort semantics, which can lead to message loss.</p></li>
+<li><p><strong>Decoupling:</strong> components should evolve independently. Tight coupling increases development fragility and reduces reusability.</p></li>
+</ul>
+<p>These functions are amplified by physical constraints - actuators cannot wait indefinitely, and sensors produce high-rate asynchronous streams. Middleware is thus both a communication substrate and an enabling technology for desterministic design.</p>
+</section>
+</section>
+<section id="communication-models-in-distributed-systems">
+<h2>Communication models in distributed systems<a class="headerlink" href="#communication-models-in-distributed-systems" title="Link to this heading">¶</a></h2>
+<p>Understanding ROS 2 requires understanding the choices of communication paradigms, because these choices have direct consequences for latency, scalability, and determinism.</p>
+<section id="shared-memory">
+<h3>Shared memory<a class="headerlink" href="#shared-memory" title="Link to this heading">¶</a></h3>
+<section id="mechanisms">
+<h4>Mechanisms<a class="headerlink" href="#mechanisms" title="Link to this heading">¶</a></h4>
+<p>In shared memory systems, multiple processes map a portion of memory into their address space, allowing them to read and write the same memory directly. No message passing or serialization is required, which minimizes latency and CPU overhead.</p>
+</section>
+<section id="why">
+<h4>Why<a class="headerlink" href="#why" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Low latency: memory access is orders of magnitude faster than network I/O</p></li>
+<li><p>Predictable timing: access times can often be bounded, making it suitable for hard real-time applications.</p></li>
 </ul>
 </section>
-<section id="executors">
-<h2>Executors<a class="headerlink" href="#executors" title="Link to this heading">¶</a></h2>
-<p>Executors schedule callbacks for subscriptions, timers, and services. Common
-executors include single-threaded and multi-threaded variants. Callback groups
-control concurrency and prevent data races.</p>
-</section>
-<section id="composition">
-<h2>Composition<a class="headerlink" href="#composition" title="Link to this heading">¶</a></h2>
-<p>ROS2 supports composable nodes that run in a single process. This reduces
-overhead and improves performance when nodes are tightly coupled.</p>
-</section>
-<section id="lifecycle-nodes">
-<h2>Lifecycle nodes<a class="headerlink" href="#lifecycle-nodes" title="Link to this heading">¶</a></h2>
-<p>Lifecycle nodes provide deterministic startup and shutdown behavior. They move
-through states like unconfigured, inactive, active, and finalized.</p>
-</section>
-<section id="dds-details">
-<h2>DDS details<a class="headerlink" href="#dds-details" title="Link to this heading">¶</a></h2>
-<p>DDS handles discovery, serialization, and transport. QoS policies determine how
-data is delivered and what guarantees are provided.</p>
-</section>
-<section id="best-practices">
-<h2>Best practices<a class="headerlink" href="#best-practices" title="Link to this heading">¶</a></h2>
+<section id="challenges">
+<h4>challenges<a class="headerlink" href="#challenges" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p>Choose QoS profiles based on network conditions.</p></li>
-<li><p>Use namespaces to keep large systems organized.</p></li>
-<li><p>Keep topics small and publish at stable rates.</p></li>
+<li><p>Concurrency hazards: multiple processes writing simultaneously can correupt data. Locks or atomic opertions are required, but they introduce blocking or priority inversion, which can compromize real-time behavior.</p></li>
+<li><p>Tight coupling: all processes must understand the memory layout. Changing a data structure requires updating all processes simultaneously. This reduces modularity, which is a key goal in robotics middleware.</p></li>
+<li><p>Limited scalability: shared memory only works on a single machine. modern robots often have heterogeneous processors or operate in multi-robot fleets, so shared memory alone is insufficient.</p></li>
 </ul>
+<p>Shared memory is suitable for high-frequency, low-latency interactions on a single embedded board, such as passing IMU data to a flight controller. However, for inter-machine communication or modular software architecture, it is too fragile. ROS 2 abstracts these details via DDS, providing similar low-latency behavior where necessary but with safer distributed mechanisms.</p>
+<p>Shared memory demonstrates a fundamental trade-off between latency and modularity, It is “fast but brittle,” highlighting why middleware must balance efficientcy with robustness.</p>
+</section>
+</section>
+<section id="remote-procedure-calls-rpc">
+<h3>Remote Procedure Calls (RPC)<a class="headerlink" href="#remote-procedure-calls-rpc" title="Link to this heading">¶</a></h3>
+<section id="mechanism">
+<h4>Mechanism<a class="headerlink" href="#mechanism" title="Link to this heading">¶</a></h4>
+<p>RPC allows one process to invoke a function in another process or machine as if it were local. The middleware handles network communication, serialization, and deserialization.</p>
+</section>
+<section id="id1">
+<h4>Why<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Calls are blocking and synchronous, which simplifies reasoning about program flow.</p></li>
+<li><p>Request-response semantics provide strong guarantees about correspondence between requests and responses.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h4>Challenges<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Blocking behavior: a high-frequency sensor loop cannot afford to block waiting for a remote service. At 400 Hz, even small network jitter can accumulate into missed deadlines.</p></li>
+<li><p>Tight coupling: the caller must know exactly which remote service to invoke. This reduces flexibility and makes system evolution difficult.</p></li>
+<li><p>Scalability limitations: in multi-robot systems, RPC requires point-to-point connections, which scale poorly as the number of nodes grows.</p></li>
+</ul>
+<p>RPC works well for configuration or low-rate command messages. however, it is unsuitable for continuous high-rate sensor streams or real-time control loops.</p>
+<p>RPC demonstrates the trade-off between simplicity and temporal decoupling. Synchronous semantics are easy to reason about, but they are incompatible with asynchronous streaming, which dominates robotics workloads.</p>
+</section>
+</section>
+<section id="publish-subscribe">
+<h3>Publish-Subscribe<a class="headerlink" href="#publish-subscribe" title="Link to this heading">¶</a></h3>
+<section id="id3">
+<h4>Mechanism<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
+<p>Publish-subscribe decouples producers (publishers) from consumers (subscribers) via topics. Publishers post messages to topics without knowledge of who will read them. Subscribers listen to topics without knowledge of the publishers. The middleware handles delivery, buffering, and discovery.</p>
+</section>
+<section id="id4">
+<h4>Why<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Temporal decoupling: a high-frequency sensor can publish independently of how many subscribers exist or their processing rate.</p></li>
+<li><p>Modularity and scalability: new nodes can join dynamically without changing publishers. This is essential for multi-robot systems.</p></li>
+<li><p>QoS control: DDS allows policies for reliability, latency, and message history, enabling formal temporal reasoning.</p></li>
+</ul>
+</section>
+<section id="id5">
+<h4>Challenges<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Timing variability: message delivery depends on network conditions, subscriber load, and middleware buffering.</p></li>
+<li><p>Ordering and consistency: messages may arrive out of order or be dropped depending on QoS settings.</p></li>
+<li><p>Analysis complexity: unlike RPC or shared memory, worst-case latency must be decomposed across middleware, OS, and hardware layers.</p></li>
+</ul>
+<p>Publish-subscribe is aligned with robotics because sensor data is continuous and asynchronous. Flight controllers, motion planners, and logging systems can all operate independently while sharing the same topic streams. DDS adds data-centric semantics, where messages carry global system state, enabling automatic discovery and QoS enforcements.</p>
+<p>Publish-subscribe represents the modern compromize between flexibility, modularity, and temporal control. It sacrifices some predictability in favor of scalability, decoupling, and multi-robot operation, but ROS 2 mitigates this via QoS, executors, and formal timing analysis.</p>
+</section>
+</section>
+<section id="comparative-discussion">
+<h3>Comparative discussion<a class="headerlink" href="#comparative-discussion" title="Link to this heading">¶</a></h3>
+<div class="line-block">
+<div class="line">Feature             | Shared Memory            | RPC                       | Publish–Subscribe           |</div>
+<div class="line">——————- | ———————— | ————————- | ————————— |</div>
+<div class="line">Latency             | Very low                 | Low–medium                | Medium                      |</div>
+<div class="line">Determinism         | High (on single machine) | Moderate (network jitter) | Low–medium (depends on QoS) |</div>
+<div class="line">Modularity          | Low                      | Medium                    | High                        |</div>
+<div class="line">Scalability         | Poor                     | Limited                   | High                        |</div>
+<div class="line">Temporal Decoupling | None                     | None                      | Yes                         |</div>
+</div>
+<ul class="simple">
+<li><p>Shared memory optimizes latency but sacrifices modularity and scalability</p></li>
+<li><p>RPC simplifies reasoning for synchronous tasks but cannot handle high-rate streaming efficiently</p></li>
+<li><p>Publish-subscribe sacrifices some determinstic predictability but enables distributed, modular, and scalable systems, which is why ROS 2 builds on this model</p></li>
+</ul>
+<p>The design of ROS 2 reflects a deliberate engineering compromise. Rather than optimizing for the lowest latency at the cost of system fragility, it prioritizes modularity, discoverability, and the ability to enforce temporal contracts via QoS, making it suitable for distributed real-time robotics.</p>
+</section>
 </section>
 </section>
 
@@ -146,7 +260,7 @@ data is delivered and what guarantees are provided.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="appendix_f_monolithic_architecture.html" class="btn btn-neutral float-left" title="Appendix F: Monolithic Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="appendix_e_monolithic_architecture.html" class="btn btn-neutral float-left" title="Appendix F: Monolithic Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="appendix_h_udp.html" class="btn btn-neutral float-right" title="Appendix H: UDP" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

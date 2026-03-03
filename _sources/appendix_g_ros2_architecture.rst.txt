@@ -1,44 +1,142 @@
 Appendix G: ROS2 Architecture
 =============================
 
-Layered structure
------------------
+Introduction
+------------
 
-ROS2 is built as a stack of layers:
+Modern robotic systems are inherently distributed, modular, and real-timeconstrained. Unlike traditional software, a robot is not a monolithic program; it is composed of sensors, algorithms, control loops, actuators, and supervisory components. Each of these components may operate:
 
-- Client libraries: rclcpp (C++), rclpy (Python)
-- ROS client library: rcl
-- Middleware interface: rmw
-- DDS implementation: Fast DDS, Cyclone DDS, or Connext
+- At different frequencies
+- On different processors
+- With different languages
+- Across different machines
 
-Executors
----------
+The immediate implication is that direct coupling of these components quickly becomes unmanageable. Simple mechanisms like shared memory or ad-hoc TCP sockets fail to scale and cannot guarantee correctness under timing constraints.
 
-Executors schedule callbacks for subscriptions, timers, and services. Common
-executors include single-threaded and multi-threaded variants. Callback groups
-control concurrency and prevent data races.
+Robotics cannot be treates as standard software engineering because physical embodiment imposes temporal correctness requirements. Missing a deadline may not just degrade performance; it can compromise safety. Middleware in robotics is therefore not a convenience, bit a necessity.
 
-Composition
------------
+The Robot Operating System (ROS) emerged to address these issues. ROS 1 provided modularity and message-oriented design but relied on a centralized master node, best-effort TCP transport, and had limited real-time capabilities. ROS 2 represents a re-conception of middleware, emphasizing distributes discovery, data-centric communication, deterministic-enabling design, and integrated security. This chapter builds from first principles to examine why ROS 2 is architectured the way it is, and critically analyzes its ability to support real-time robotic systems. 
 
-ROS2 supports composable nodes that run in a single process. This reduces
-overhead and improves performance when nodes are tightly coupled.
+Why robotics needs middleware
+-----------------------------
 
-Lifecycle nodes
----------------
+The challenges of distributed robotics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Lifecycle nodes provide deterministic startup and shutdown behavior. They move
-through states like unconfigured, inactive, active, and finalized.
+A UAV stabilization system illustrates the challenge: IMU sensors stream data at hundreds of herts, control loops compute corrections, and actuators apply forces - all in a slightly synchronized loop. Without middleware:
 
-DDS details
------------
+- Each node must know addresses and protcols of every other node
+- Temporal guarantees must be manually ensured across heterogeneous platforms
+- Scaling to multiple robots multiplies communication complexity
 
-DDS handles discovery, serialization, and transport. QoS policies determine how
-data is delivered and what guarantees are provided.
+These challenges highlight that middleware must do more than "send messages". It must provide a structural framework to manage distribution =, temporal constraints, and modular evolution.
 
-Best practices
---------------
+Core middleware functions
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Choose QoS profiles based on network conditions.
-- Use namespaces to keep large systems organized.
-- Keep topics small and publish at stable rates.
+Middleware solves three foundational problems:
+
+- **Discovery:** nodes must find each ither dynamicallt. Hardcoding endpoints is brittle and unscalable.
+- **Communication:** nodes must exchange data reliably. ROS 1's TCP-based transport often relied on best-effort semantics, which can lead to message loss.
+- **Decoupling:** components should evolve independently. Tight coupling increases development fragility and reduces reusability.
+
+These functions are amplified by physical constraints - actuators cannot wait indefinitely, and sensors produce high-rate asynchronous streams. Middleware is thus both a communication substrate and an enabling technology for desterministic design.
+
+Communication models in distributed systems
+-------------------------------------------
+
+Understanding ROS 2 requires understanding the choices of communication paradigms, because these choices have direct consequences for latency, scalability, and determinism. 
+
+Shared memory
+^^^^^^^^^^^^^
+
+Mechanisms
+~~~~~~~~~~
+
+In shared memory systems, multiple processes map a portion of memory into their address space, allowing them to read and write the same memory directly. No message passing or serialization is required, which minimizes latency and CPU overhead. 
+
+Why
+~~~
+
+- Low latency: memory access is orders of magnitude faster than network I/O
+- Predictable timing: access times can often be bounded, making it suitable for hard real-time applications.
+
+challenges
+~~~~~~~~~~
+
+- Concurrency hazards: multiple processes writing simultaneously can correupt data. Locks or atomic opertions are required, but they introduce blocking or priority inversion, which can compromize real-time behavior.
+- Tight coupling: all processes must understand the memory layout. Changing a data structure requires updating all processes simultaneously. This reduces modularity, which is a key goal in robotics middleware.
+- Limited scalability: shared memory only works on a single machine. modern robots often have heterogeneous processors or operate in multi-robot fleets, so shared memory alone is insufficient.
+
+Shared memory is suitable for high-frequency, low-latency interactions on a single embedded board, such as passing IMU data to a flight controller. However, for inter-machine communication or modular software architecture, it is too fragile. ROS 2 abstracts these details via DDS, providing similar low-latency behavior where necessary but with safer distributed mechanisms.
+
+Shared memory demonstrates a fundamental trade-off between latency and modularity, It is "fast but brittle," highlighting why middleware must balance efficientcy with robustness. 
+
+Remote Procedure Calls (RPC)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Mechanism
+~~~~~~~~~
+
+RPC allows one process to invoke a function in another process or machine as if it were local. The middleware handles network communication, serialization, and deserialization.
+
+Why
+~~~
+
+- Calls are blocking and synchronous, which simplifies reasoning about program flow.
+- Request-response semantics provide strong guarantees about correspondence between requests and responses.
+
+Challenges
+~~~~~~~~~~
+
+- Blocking behavior: a high-frequency sensor loop cannot afford to block waiting for a remote service. At 400 Hz, even small network jitter can accumulate into missed deadlines.
+- Tight coupling: the caller must know exactly which remote service to invoke. This reduces flexibility and makes system evolution difficult.
+- Scalability limitations: in multi-robot systems, RPC requires point-to-point connections, which scale poorly as the number of nodes grows.
+
+RPC works well for configuration or low-rate command messages. however, it is unsuitable for continuous high-rate sensor streams or real-time control loops.
+
+RPC demonstrates the trade-off between simplicity and temporal decoupling. Synchronous semantics are easy to reason about, but they are incompatible with asynchronous streaming, which dominates robotics workloads.
+
+Publish-Subscribe
+^^^^^^^^^^^^^^^^^
+
+Mechanism
+~~~~~~~~~
+
+Publish-subscribe decouples producers (publishers) from consumers (subscribers) via topics. Publishers post messages to topics without knowledge of who will read them. Subscribers listen to topics without knowledge of the publishers. The middleware handles delivery, buffering, and discovery.
+
+Why
+~~~
+
+- Temporal decoupling: a high-frequency sensor can publish independently of how many subscribers exist or their processing rate.
+- Modularity and scalability: new nodes can join dynamically without changing publishers. This is essential for multi-robot systems.
+- QoS control: DDS allows policies for reliability, latency, and message history, enabling formal temporal reasoning.
+
+Challenges
+~~~~~~~~~~
+
+- Timing variability: message delivery depends on network conditions, subscriber load, and middleware buffering.
+- Ordering and consistency: messages may arrive out of order or be dropped depending on QoS settings.
+- Analysis complexity: unlike RPC or shared memory, worst-case latency must be decomposed across middleware, OS, and hardware layers.
+
+Publish-subscribe is aligned with robotics because sensor data is continuous and asynchronous. Flight controllers, motion planners, and logging systems can all operate independently while sharing the same topic streams. DDS adds data-centric semantics, where messages carry global system state, enabling automatic discovery and QoS enforcements.
+
+Publish-subscribe represents the modern compromize between flexibility, modularity, and temporal control. It sacrifices some predictability in favor of scalability, decoupling, and multi-robot operation, but ROS 2 mitigates this via QoS, executors, and formal timing analysis.
+
+Comparative discussion
+^^^^^^^^^^^^^^^^^^^^^^
+
+| Feature             | Shared Memory            | RPC                       | Publish–Subscribe           |
+| ------------------- | ------------------------ | ------------------------- | --------------------------- |
+| Latency             | Very low                 | Low–medium                | Medium                      |
+| Determinism         | High (on single machine) | Moderate (network jitter) | Low–medium (depends on QoS) |
+| Modularity          | Low                      | Medium                    | High                        |
+| Scalability         | Poor                     | Limited                   | High                        |
+| Temporal Decoupling | None                     | None                      | Yes                         |
+
+- Shared memory optimizes latency but sacrifices modularity and scalability
+- RPC simplifies reasoning for synchronous tasks but cannot handle high-rate streaming efficiently
+- Publish-subscribe sacrifices some determinstic predictability but enables distributed, modular, and scalable systems, which is why ROS 2 builds on this model
+
+The design of ROS 2 reflects a deliberate engineering compromise. Rather than optimizing for the lowest latency at the cost of system fragility, it prioritizes modularity, discoverability, and the ability to enforce temporal contracts via QoS, making it suitable for distributed real-time robotics.
+

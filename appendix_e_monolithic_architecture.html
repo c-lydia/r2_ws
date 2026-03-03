@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Appendix H: UDP &mdash; target_setter 1.0 documentation</title>
+  <title>Appendix F: Monolithic Architecture &mdash; target_setter 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -17,8 +17,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Appendix I: Quaternions" href="appendix_i_quaternions.html" />
-    <link rel="prev" title="Appendix G: ROS2 Architecture" href="appendix_g_ros2_architecture.html" /> 
+    <link rel="next" title="Appendix G: ROS2 Architecture" href="appendix_g_ros2_architecture.html" />
+    <link rel="prev" title="Appendix E: Distributed Systems" href="appendix_d_distributed_systems.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,17 +53,16 @@
 <li class="toctree-l1"><a class="reference internal" href="appendix_b_mvc_architecture.html">Appendix B: MVC Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_c_mvvm_architecture.html">Appendix C: MVVM Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_d_distributed_systems.html">Appendix E: Distributed Systems</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix_e_monolithic_architecture.html">Appendix F: Monolithic Architecture</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix H: UDP</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix F: Monolithic Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#characteristics">Characteristics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#packet-size-and-mtu">Packet size and MTU</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#checksums">Checksums</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#best-practices-for-control-systems">Best practices for control systems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#applied-to-target-setting">Applied to target setting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#benefits">Benefits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#drawbacks">Drawbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#modular-monolith">Modular monolith</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#applied-to-robotics-tooling">Applied to robotics tooling</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_g_ros2_architecture.html">Appendix G: ROS2 Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_h_udp.html">Appendix H: UDP</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_i_quaternions.html">Appendix I: Quaternions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_j_kinematics.html">Appendix J: Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix_k_state_machine.html">Appendix K: State Machine</a></li>
@@ -89,9 +88,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Appendix H: UDP</li>
+      <li class="breadcrumb-item active">Appendix F: Monolithic Architecture</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/c-lydia/r2_ws/blob/maindocs/source/appendix_h_udp.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/c-lydia/r2_ws/blob/maindocs/source/appendix_e_monolithic_architecture.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -99,46 +98,40 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="appendix-h-udp">
-<h1>Appendix H: UDP<a class="headerlink" href="#appendix-h-udp" title="Link to this heading">¶</a></h1>
+  <section id="appendix-f-monolithic-architecture">
+<h1>Appendix F: Monolithic Architecture<a class="headerlink" href="#appendix-f-monolithic-architecture" title="Link to this heading">¶</a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>User Datagram Protocol (UDP) is a connectionless transport protocol that sends
-independent datagrams. It is fast and lightweight but provides no delivery or
-ordering guarantees.</p>
+<p>A monolithic architecture bundles application components into a single deployable
+unit. This contrasts with microservices or distributed components.</p>
 </section>
-<section id="characteristics">
-<h2>Characteristics<a class="headerlink" href="#characteristics" title="Link to this heading">¶</a></h2>
+<section id="benefits">
+<h2>Benefits<a class="headerlink" href="#benefits" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Connectionless and stateless.</p></li>
-<li><p>Packets can be dropped, duplicated, or reordered.</p></li>
-<li><p>Lower overhead than TCP.</p></li>
+<li><p>Simple deployment and debugging.</p></li>
+<li><p>No network overhead between internal modules.</p></li>
+<li><p>Easier to maintain transaction boundaries.</p></li>
 </ul>
 </section>
-<section id="packet-size-and-mtu">
-<h2>Packet size and MTU<a class="headerlink" href="#packet-size-and-mtu" title="Link to this heading">¶</a></h2>
-<p>UDP payloads that exceed the path MTU may be fragmented, which increases loss
-risk. Design packet formats to be compact and avoid fragmentation where
-possible.</p>
-</section>
-<section id="checksums">
-<h2>Checksums<a class="headerlink" href="#checksums" title="Link to this heading">¶</a></h2>
-<p>UDP includes a checksum for error detection but no retransmission. Applications
-must decide whether to drop or tolerate corrupted packets.</p>
-</section>
-<section id="best-practices-for-control-systems">
-<h2>Best practices for control systems<a class="headerlink" href="#best-practices-for-control-systems" title="Link to this heading">¶</a></h2>
+<section id="drawbacks">
+<h2>Drawbacks<a class="headerlink" href="#drawbacks" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Include sequence numbers or plan IDs to identify stale data.</p></li>
-<li><p>Use fixed-size binary formats for consistent parsing.</p></li>
-<li><p>Keep send rates bounded to avoid congestion.</p></li>
-<li><p>For critical commands, consider sending multiple times or adding acknowledgments.</p></li>
+<li><p>Tightly coupled components reduce flexibility.</p></li>
+<li><p>Scaling requires duplicating the entire system.</p></li>
+<li><p>Large codebases can slow development without strong modularity.</p></li>
 </ul>
 </section>
-<section id="applied-to-target-setting">
-<h2>Applied to target setting<a class="headerlink" href="#applied-to-target-setting" title="Link to this heading">¶</a></h2>
-<p>The waypoint protocol favors low latency and simplicity. The app can tolerate
-occasional packet loss while maintaining responsiveness.</p>
+<section id="modular-monolith">
+<h2>Modular monolith<a class="headerlink" href="#modular-monolith" title="Link to this heading">¶</a></h2>
+<p>A modular monolith preserves a single deployment but enforces internal module
+boundaries. This approach often provides the best of both worlds when the
+system does not require independent scaling.</p>
+</section>
+<section id="applied-to-robotics-tooling">
+<h2>Applied to robotics tooling<a class="headerlink" href="#applied-to-robotics-tooling" title="Link to this heading">¶</a></h2>
+<p>A standalone UI app can be treated as a monolith with clear internal modules
+for networking, input handling, rendering, and data persistence. This keeps
+deployment simple while still enabling maintainability.</p>
 </section>
 </section>
 
@@ -146,8 +139,8 @@ occasional packet loss while maintaining responsiveness.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="appendix_g_ros2_architecture.html" class="btn btn-neutral float-left" title="Appendix G: ROS2 Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="appendix_i_quaternions.html" class="btn btn-neutral float-right" title="Appendix I: Quaternions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="appendix_d_distributed_systems.html" class="btn btn-neutral float-left" title="Appendix E: Distributed Systems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="appendix_g_ros2_architecture.html" class="btn btn-neutral float-right" title="Appendix G: ROS2 Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
