@@ -14,27 +14,36 @@ Core Documentation
 ------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    introduction
    hardware_specification
    installation_and_configuration
    technical_reference
    troubleshooting_guide
+   update_log
 
-
-Appendices (Technical Background)
----------------------------------
+System Evaluation
+-----------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
+
+   session_1/index
+   session_2/index
+
+Appendices
+----------
+
+.. toctree::
+   :maxdepth: 3
 
    appendix_a_object_oriented_programming
    appendix_b_mvc_architecture
    appendix_c_mvvm_architecture
-   appendix_d_ros2_overview
-   appendix_e_distributed_systems
-   appendix_f_monolithic_architecture
+   appendix_d_distributed_systems
+   appendix_e_monolithic_architecture
+   appendix_f_real_time_system_and_middleware
    appendix_g_ros2_architecture
    appendix_h_udp
    appendix_i_quaternions

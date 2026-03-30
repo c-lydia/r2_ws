@@ -1,439 +1,341 @@
+import math
+import time 
+
 import rclpy
-from rclpy.node import Node 
+from rclpy.node import Node
+from rclpy.callback_groups import ReentrantCallbackGroup
+
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist 
-from custom_messages.msg import UpdateWaypoint, Waypoint, Return
-import math  
-import time
-import pynput 
+from std_srvs.srv import Trigger 
+from geometry_msgs.msg import Twist
 from enum import Enum
 
-ALPHA = 0.2
-MIN_LINEAR_VEL = 0.05
-MIN_ANGULAR_VEL = 0.05
-MAX_LINEAR_VEL = 1.0
-MAX_ANGULAR_VEL = 0.5
-ERROR_THRESHOLD = 0.05
-ALPHA_D = 0.3
+from custom_messages.msg import WaypointBatch, UpdateWaypoint, Return, Waypoint
+from typing import List, Tuple 
+
+# TODO: reconstruct control node:
+# - data structure: for waypoint and edit message store in disctionary; for return logic need stack to store vistied waypoints
+# - controller: P controller only, add deadzone, speed limiting, rate limiting
+# - edit: need complementary filter to avoid sudden change in trajectory
+# - need state machine definition
+
+# UPDATE V0.3: 
+# - correct kinematics (done)
+# - change udp_listener to publishes in batch (done)
+# - add state machine (deon)
+# - simplify controller to P only with rate limit and velocity limit
+
+# NOTE:
+# - learn state machine
+# - document the code properly for next report
+
+K_P = 0.3
+A_MAX = 0.2
+ERROR_THRESHOLD = 0.02
+ANGULAR_VEL_MAX = 0.5
+LINEAR_VEL_MAX = 1.0
+ARRIVAL_THRESHOLD = 0.05
+PAUSE_DURATION = 0.5
+ODOM_RESET_TIMEOUT = 2.0
+CAN_RESET_TIMEOUT = 2.0 
 
 class StateMachine(Enum):
     IDLE = 0
-    NAVIGATING = 1
-    EDIT = 2
+    NAVIGATE = 1
+    RETURN = 2
     PAUSED = 3
-    RETURNING = 4
-    
+
 class RobotControl(Node):
     def __init__(self):
-        super().__init__('robot_control')
-        self.wp_subscriber = self.create_subscription(Waypoint, '/waypoint', self.waypoint_callback, 10)
-        self.current_odom_subscriber = self.create_subscription(Odometry, '/current_odom', self.current_odom_callback, 10)
-        self.cmd_vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
-        self.update_subscriber = self.create_subscription(UpdateWaypoint, '/update_wp', self.update_wp_callback, 10)
-        self.return_subscriber = self.create_subscription(Return, '/return_flag', self.return_callback, 10)
-        self.cmd_vel_timer = self.create_timer(0.1, self.timer_callback)
+        super().__init__('robot_control_node')
         
-        self.current_odom_x = 0.0
-        self.current_odom_y = 0.0
-        self.current_odom_z = 0.0
-        self.yaw = 0.0
+        cb = ReentrantCallbackGroup()
         
-        self.current_x = 0.0
-        self.current_y = 0.0
-        self.current_z = 0.0
-        self.current_yaw = 0.0
+        self.create_subscription(Odometry, '/current_odom', self._odom_callback, 10, callback_group = cb)
+        self.create_subscription(WaypointBatch, '/waypoint', self._wp_callback, 10, callback_group = cb)
+        self.create_subscription(UpdateWaypoint, '/update_wp', self._edit_callback, 10, callback_group = cb)
+        self.create_subscription(Return, '/return_flag', self._return_callback, 10, callback_group = cb)
         
-        self.waypoint_x = 0.0
-        self.waypoint_y = 0.0
-        self.waypoint_z = 0.0
-        self.waypoint_yaw = 0.0
+        self._vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         
-        self.desired_x = 0.0
-        self.desired_y = 0.0
-        self.desired_yaw = 0.0
-        self.desired_z = 0.0
+        self._reset_client = self.create_client(Trigger, '/reset_odometry', callback_group = cb)
+        self._reset_can = self.create_client(Trigger, '/reset_can_driver')
         
-        self.k_p_linear = 0.1
-        self.k_p_yaw = 0.08
-        self.k_d = 0.08
-        self.k_d_yaw = 0.06
+        self.create_timer(0.1, self._timer_callback, callback_group = cb)
         
-        self.previous_x = None
-        self.previous_y = None
-        self.previous_yaw = None
+        self._state = StateMachine.IDLE
         
-        self.yaw_start = None
-        self.x_start = None
-        self.y_start = None
-        self.overflow_counter = 0.0
+        self._waypoints: List[Waypoint] = []
+        self._history: List[Waypoint] = []
+        self._active_wp: Waypoint | None = None 
         
-        self.previous_x_p_error = 0.0
-        self.previous_y_p_error = 0.0
-        self.previous_yaw_p_error = 0.0
-        self.dt = 0.0
-        self.previous_time = 0.0
+        self._return_requested: bool = False
+        self._pause_robot: bool = False
+        self._pause_at_wp: bool = False
+        self._arrival_time: float = 0.0
         
-        self.waypoint_queue = []
-        self.active_target = None
-        self.goal_tolerance_pos = 0.05
-        self.goal_tolerance_yaw = 0.01
-        self.visited_wp = []
-        self.wp = None 
-        self.return_ = False
-        self.arrival_time = 0.0
+        self._x: float = 0.0
+        self._y: float = 0.0
+        self._yaw: float = 0.0
         
-        self.pause_at_target = False
-        self.pause_duration = 1.0
-        self.pause_start_time = None
-        self.pause_robot = False
+        self._prev_vx: float = 0.0
+        self._prev_vy: float = 0.0
+        self._prev_wz: float = 0.0
+        self._prev_time: float = time.perf_counter()
         
-        self.previous_x_d_error = 0.0
-        self.previous_y_d_error = 0.0
-        self.previous_yaw_d_error = 0.0
-        
-        self.scale = 0.0
-        
-        self.listener = pynput.keyboard.Listener(on_press = self.on_press)
-        self.listener.start()
-        
-        self.cmd_vel_msg = Twist()
-        
-        self.in_return_mode = False 
-        self.startup_time = 0.0
-        
-        self.state = StateMachine.IDLE
-
-    def waypoint_callback(self, wp_msg):
-        self.wp = {
-            'index': wp_msg.index,
-            'version': wp_msg.version,
-            'x': wp_msg.x,
-            'y': wp_msg.y,
-            'yaw': 0.0
-        }
-        
-        self.get_logger().info(
-            f"Receiving waypoint: x = {self.wp['x']}, y = {self.wp['y']}"
-        )
-        
-        self.waypoint_queue.append(self.wp)
-        self.get_logger().info(f"Added to queue. Queue size = {len(self.waypoint_queue)}")
-
-        if self.active_target is None:
-            self.active_target = dict(self.wp)
-            self.get_logger().info(f"Activating first target: {self.active_target}")
-
-    def current_odom_callback(self, current_odom_msg):
-        self.current_odom_x = current_odom_msg.pose.pose.position.x
-        self.current_odom_y = current_odom_msg.pose.pose.position.y
-        self.current_odom_z = current_odom_msg.pose.pose.position.z
-        
-        current_q = current_odom_msg.pose.pose.orientation 
-        self.yaw = self.calculate_yaw(current_q)
-        self.get_logger().info(f'Receiving: Current x = {self.current_odom_x}, Current y = {self.current_odom_y}, Current Yaw = {self.yaw}')
-        
-    def update_wp_callback(self, update_wp_msg):
-        if not update_wp_msg.edited:
-            return
-        
-        if self.pause_at_target or self.pause_robot:
-            self.publish_stop()
-            return
-        
-        if not self.active_target:
-            self.publish_stop()
-            self.get_logger().info("No active target")
-            return
-
-        update_wp = {
-            'updated_index': update_wp_msg.index,
-            'updated_version': update_wp_msg.version,
-            'updated_x': update_wp_msg.x,
-            'updated_y': update_wp_msg.y,
-            'updated_yaw': 0.0
-        }
-        
-        if self.active_target['index'] == update_wp['updated_index']:
-            if self.active_target['version'] != update_wp['version']:
-                self.state = StateMachine.EDIT
-                self.edit_wp = update_wp
-                self.get_logger().info(f"Preparing to edit active waypoint: {self.active_target}")
-            return
-        
-        for i, wp in enumerate(self.waypoint_queue):
-            if wp['index'] == update_wp['index'] and wp['version'] != update_wp['version']:
-                self.get_logger().info(f"Editing queued waypoint: {wp}")
-                wp['x'] = (1 - ALPHA) * wp['x'] + ALPHA * update_wp['x']
-                wp['y'] = (1 - ALPHA) * wp['y'] + ALPHA * update_wp['y']
-                
-                if self.active_target is None:
-                    dx = update_wp['x'] - self.current_x
-                else:
-                    dx = update_wp['x'] - self.active_target['x']
-                    
-                if self.active_target is None:
-                    dy = update_wp['y'] - self.current_y
-                else:
-                    dy = update_wp['y'] - self.current_y
-                    
-                edit_yaw = math.atan2(dy, dx)
-                wp['yaw'] = (1 - ALPHA) * wp['yaw'] + ALPHA * edit_yaw
-                
-                wp['version'] = update_wp['version']
-                self.get_logger().info(f"Waypoint updated in queue: {wp}")
-                break
-    
-    def return_callback(self, return_msg):
-        self.return_ = return_msg.flag
-        
-    def handle_idle(self):
-        if self.waypoint_queue:
-            self.active_target = self.waypoint_queue.pop()
-            self.reset_controller_state()
-            self.state = StateMachine.NAVIGATING
-            self.get_logger().info(f"Next target activated: {self.active_target}")
-        elif self.return_ and self.visited_wp:
-            self.active_target = self.visited_wp.pop()
-            self.reset_controller_state()
-            self.state = StateMachine.RETURNING
-            self.return_ = False
-            self.get_logger().info(f'Retruning to {self.active_target}')
+        if self._reset_client.wait_for_service(timeout_sec = ODOM_RESET_TIMEOUT):
+            self._reset_client.call_async(Trigger.Request())
+            self.get_logger().info(f'Odometry reset requested')
         else:
-            self.publish_stop()
+            self.get_logger().warn(f'Odometry reset service unavailable')
             
-    def handle_navigation(self):
-        if self.active_target is None:
-            self.state = StateMachine.IDLE
-            return
-        
-        if self.reached_active_target():
-            self.visited_wp.append(self.active_target)
-            self.active_target = None
-            self.state = StateMachine.IDLE
+        if self._reset_can.wait_for_service(timeout_sec = CAN_RESET_TIMEOUT):
+            self._reset_can.call_async(Trigger.Request())
+            self.get_logger().info(f'Can reset requeted')
+        else:
+            self.get_logger().warn(f'Can reset not available')
             
-    def handle_returning(self):
-        self.handle_navigation()
+    def _odom_callback(self, msg: Odometry) -> None:
+        self._x = msg.pose.pose.position.x 
+        self._y = msg.pose.pose.position.y 
+        self._yaw = self._quaternion_to_yaw(msg.pose.pose.orientation)
         
-        if self.active_target is None and not self.visited_wp:
-            self.state = StateMachine.IDLE
+    def _wp_callback(self, msg: WaypointBatch) -> None:
+        waypoints: List[Waypoint | None] = [None] * len(msg.waypoint)
+        
+        for wp in msg.waypoint:
+            waypoints[wp.index] = {
+                'index': wp.index,
+                'x': wp.x, 
+                'y': wp.y, 
+                'version': wp.version
+            }
+        
+        for wp in waypoints:
+            if wp is not None:
+                self._waypoints.append(wp)
+        
+        if self._waypoints:
+            self._activate_next_waypoint()
+            self._state = StateMachine.NAVIGATE
+        else:
+            self._active_wp = None
+            self._state = StateMachine.IDLE 
             
-    def handle_paused(self):
-        self.publish_stop()
+    def _edit_callback(self, msg: UpdateWaypoint) -> None:
+        if not msg.edited:
+            return 
         
-        if not self.pause_robot:
-            self.state = StateMachine.IDLE
+        idx = msg.index 
+        
+        if idx < len(self._waypoints) and self._waypoints[idx] is not None:
+            self._waypoints[idx]['x'] = msg.x 
+            self._waypoints[idx]['y'] = msg.y 
             
-    def handle_edit(self):
-        self.publish_stop()
-        
-        self.active_target['x'] = (1 - ALPHA) * self.active_target['x'] + ALPHA * self.edit_wp['x']
-        self.active_target['y'] = (1 - ALPHA) * self.active_target['y'] + ALPHA * self.edit_wp['y']
-        
-        edit_dx = self.edit_wp['x'] - self.current_x
-        edit_dy = self.edit_wp['y'] - self.current_y
-        
-        self.edit_yaw = math.atan2(edit_dy, edit_dx)
-        
-        self.active_target['yaw'] = (1 - ALPHA) * self.active_target['yaw'] + ALPHA * self.edit_yaw
-        
-        self.reset_controller_state()
-        
-        self.get_logger().info(f"Waypoint edited safely: {self.active_target}")
-        
-        self.state = StateMachine.NAVIGATING
+        if self._active_wp and self._active_wp['index'] == idx:
+            self._active_wp['x'] = msg.x 
+            self._active_wp['y'] = msg.y 
+            self._arrival_time = 0.0
+            self.get_logger().info(f'Active waypoint {idx} updated in-motion')
             
-    def pd_control(self):
-        self.desired_x = self.active_target['x']
-        self.desired_y = self.active_target['y']
-        self.desired_z = 0.0
+    def _return_callback(self, msg: Return) -> None:
+        self._return_requested = msg.return_flag
         
-        self.current_x = self.current_odom_x
-        self.current_y = self.current_odom_y
+    def _timer_callback(self) -> None:
+        dt = self._tick_dt()
         
-        self.current_yaw = self.normalize_angle(self.yaw)
+        if self._state == StateMachine.IDLE:
+            self._handle_idle()
+        elif self._state == StateMachine.NAVIGATE:
+            self._handle_navigate()
+        elif self._state == StateMachine.RETURN:
+            self._handle_return()
+        elif self._state == StateMachine.PAUSED:
+            self._handle_paused(dt)
+            
+        if self._active_wp and self._state in (StateMachine.NAVIGATE, StateMachine.RETURN):
+            vx, vy, wz = self._p_controller()
+        else: 
+            vx, vy, wz = 0.0, 0.0, 0.0
+            
+        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
         
-        current_x_error_g = self.desired_x - self.current_x
-        current_y_error_g = self.desired_y - self.current_y
+        vx = self._velocity_limit(vx, LINEAR_VEL_MAX)
+        vy = self._velocity_limit(vy, LINEAR_VEL_MAX)
+        wz = self._velocity_limit(wz, ANGULAR_VEL_MAX)
         
-        self.desired_yaw = math.atan2(current_y_error_g, current_x_error_g)
-
-        current_yaw_p_error = self.normalize_angle(self.desired_yaw - self.current_yaw)
+        vx = self._rate_limit(vx, self._prev_vx, A_MAX, dt)
+        vy = self._rate_limit(vy, self._prev_vy, A_MAX, dt)
+        wz = self._rate_limit(wz, self._prev_wz, A_MAX, dt)
         
-        current_time = time.perf_counter()
+        self._publish_vel(vx, vy, wz)
         
-        if self.previous_time == 0.0:
-            self.previous_time = current_time
+        self._prev_vx = vx
+        self._prev_vy = vy
+        self._prev_wz = wz
+        
+        self.get_logger().info(f'state: {self._state.name}, vx: {vx:.3f}, vy: {vy:.3f}, wz: {wz:.3f}')
+        
+    def _handle_idle(self) -> None:
+        if self._waypoints:
+            self._activate_next_waypoint()
+            self._state = StateMachine.NAVIGATE
+        elif self._return_requested and self._history:
+            self._active_wp = self._history.pop()
+            self._reset_controller_state()
+            self._return_requested = False 
+            self._state = StateMachine.RETURN
+            self.get_logger().info(f"Returning to waypoint {self._active_wp['index']}")
+        else:
+            self._active_wp = None
+            self._publish_stop()
+            
+    def _handle_navigate(self) -> None:
+        if self._active_wp is None:
+            self._state = StateMachine.IDLE
+            return 
+        
+        if self._reached_wp():
+            self._history.append(self._active_wp)
+            self._active_wp = None
+            self._pause_at_wp = True
+            self._arrival_time = 0.0
+            self._reset_controller_state()
+            self._state = StateMachine.PAUSED
+            self.get_logger().info(f'Waypoint reached, pausing')
+            
+    def _handle_return(self) -> None:
+        self._handle_navigate()
+        
+        if self._active_wp is None and not self._history:
+            self._state = StateMachine.IDLE
+            
+    def _handle_paused(self, dt: float) -> None:
+        self._publish_stop()
+        
+        if self._pause_robot:
+            return 
+        
+        self._arrival_time += dt 
+        
+        if self._pause_at_wp and self._arrival_time < PAUSE_DURATION:
+            return 
+        
+        self._pause_at_wp = False
+        self._arrival_time = 0.0
+        self.get_logger().info('Pause complete, resuming')
+        self._handle_idle()
+        
+    def _p_controller(self) -> Tuple[float, float, float]:
+        dx_g = self._active_wp['x'] - self._x
+        dy_g = self._active_wp['y'] - self._y 
+        
+        if abs(dx_g) < ARRIVAL_THRESHOLD and abs(dy_g) < ARRIVAL_THRESHOLD:
+            self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:.4f} - STOPPING')
             return 0.0, 0.0, 0.0
         
-        self.dt = current_time - self.previous_time
-        self.previous_time = current_time
+        desired_yaw = math.atan2(dy_g, dx_g)
+        yaw_error = self._wrap_angle(desired_yaw - self._yaw)
         
-        current_yaw_d_error = (current_yaw_p_error - self.previous_yaw_p_error)/self.dt
-        current_x_d_error = (current_x_error_g - self.previous_x_p_error)/self.dt
-        current_y_d_error = (current_y_error_g - self.previous_y_p_error)/self.dt
+        vx_g = K_P * dx_g 
+        vy_g = K_P * dy_g 
+        wz = K_P * yaw_error 
         
-        current_x_d_error = ALPHA_D * current_x_d_error + (1 - ALPHA_D) * self.previous_x_d_error
-        current_y_d_error = ALPHA_D * current_y_d_error + (1 - ALPHA_D) * self.previous_y_d_error
-        current_yaw_d_error = ALPHA_D * current_yaw_d_error + (1 - ALPHA_D) * self.previous_yaw_d_error
-
-        self.previous_x_d_error = current_x_d_error
-        self.previous_y_d_error = current_y_d_error
-        self.previous_yaw_d_error = current_yaw_d_error
-
-        linear_vel_x_g = self.k_p_linear * current_x_error_g + self.k_d * current_x_d_error
-        linear_vel_y_g = self.k_p_linear * current_y_error_g + self.k_d * current_y_d_error
-        angular_vel_z_g = self.k_p_yaw * current_yaw_p_error + self.k_d_yaw * current_yaw_d_error
+        c, s = math.cos(self._yaw), math.sin(self._yaw)
         
-        linear_vel_x_l = math.cos(self.current_yaw) * linear_vel_x_g + math.sin(self.current_yaw) * linear_vel_y_g
-        linear_vel_y_l = -math.sin(self.current_yaw) * linear_vel_x_g + math.cos(self.current_yaw) * linear_vel_y_g
+        vx_l = c * vx_g + s * vy_g 
+        vy_l = -s * vx_g + c * vy_g 
         
-        self.previous_x = self.current_x
-        self.previous_y = self.current_y
-        self.previous_yaw = self.current_yaw
+        self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}')
         
-        self.previous_x_p_error = current_x_error_g
-        self.previous_y_p_error = current_y_error_g
-        self.previous_yaw_p_error = current_yaw_p_error
-        
-        return linear_vel_x_l, linear_vel_y_l, angular_vel_z_g
+        return vx_l, vy_l, wz 
     
-    def speed_limit(self, v, v_max):
-        if v > v_max:
-            v = v_max
-        elif v < -v_max:
-            v = -v_max
-        else:
-            pass
-        
-        return v
-    
-    def dead_reckoning(self, v, threshold):
-        """
-        Apply a deadzone to a velocity.
-        Returns 0 if |v| < threshold, else returns v unchanged.
-        """
-        
-        if abs(v) < threshold:
-            return 0.0
-        
-        return v
+    def _activate_next_waypoint(self) -> None:
+        self._active_wp = self._waypoints.pop(0)
+        self._reset_controller_state()
+        self.get_logger().info(f"Activated waypoint {self._active_wp['index']}")
 
-    def timer_callback(self):
-        linear_vel_x = 0.0
-        linear_vel_y = 0.0
-        angular_vel_z = 0.0
+    def _reset_controller_state(self) -> None: 
+        self._prev_vx = 0.0
+        self._prev_vy = 0.0
+        self._prev_wz = 0.0
+        self._prev_time = time.perf_counter()
         
-        if self.pause_robot or (self.pause_at_target and (time.perf_counter() - self.pause_start_time < self.pause_duration)):
-            if self.pause_at_target and (time.perf_counter() - self.pause_start_time >= self.pause_duration):
-                self.pause_at_target = False
-                self.get_logger().info("Pause finished, resuming next target")
-                
-            self.publish_stop()
-        else:
-            if self.state == StateMachine.IDLE:
-                self.handle_idle()
-            elif self.state == StateMachine.NAVIGATING:
-                self.handle_navigation()
-            elif self.state == StateMachine.RETURNING:
-                self.handle_returning()   
-            elif self.state == StateMachine.EDIT:
-                self.handle_edit()
-                
-                self.edit_override_time = time.perf_counter()
-                
-                if self.active_target:
-                    self.state = StateMachine.NAVIGATING
-            elif self.state == StateMachine.PAUSED:
-                self.handle_paused()
-                self.state = StateMachine.IDLE
+    def _reached_wp(self) -> bool: 
+        if self._active_wp is None:
+            return False 
         
-        edit_override = hasattr(self, "edit_override_time") and \
-                (time.perf_counter() - self.edit_override_time < 0.5)
-                
-        if not edit_override and self.active_target and self.state in [
-            StateMachine.NAVIGATING, StateMachine.RETURNING
-        ]:
-            linear_vel_x, linear_vel_y, angular_vel_z = self.pd_control()
+        dx = self._active_wp['x'] - self._x 
+        dy = self._active_wp['y'] - self._y 
+        
+        return math.hypot(dx, dy) < ARRIVAL_THRESHOLD
+    
+    def _tick_dt(self) -> float:
+        now = time.perf_counter()
+        dt = now - self._prev_time 
+        self._prev_time = now
+        return dt 
+    
+    def _publish_vel(self, vx: float, vy: float, wz: float) -> None:
+        msg = Twist()
+        msg.linear.x = vx
+        msg.linear.y = vy
+        msg.angular.z = wz 
+        self._vel_publisher.publish(msg)
+        
+    def _publish_stop(self) -> None:
+        self._publish_vel(0.0, 0.0, 0.0)
+        
+    def resume(self) -> None: 
+        self._pause_robot = False 
+        self._pause_at_wp = False 
+        self._arrival_time = 0.0
+        self.get_logger().info(f'Robot resumed')
+        self._handle_idle()
             
-        linear_vel_x = self.dead_reckoning(linear_vel_x, ERROR_THRESHOLD)
-        linear_vel_y = self.dead_reckoning(linear_vel_y, ERROR_THRESHOLD)
-        angular_vel_z = self.dead_reckoning(angular_vel_z, ERROR_THRESHOLD)
-        
-        linear_vel_x = self.speed_limit(linear_vel_x, MAX_LINEAR_VEL)
-        linear_vel_y = self.speed_limit(linear_vel_y, MAX_LINEAR_VEL)
-        angular_vel_z = self.speed_limit(angular_vel_z, MAX_ANGULAR_VEL)
-                    
-        self.cmd_vel_msg.linear.x = linear_vel_x
-        self.cmd_vel_msg.linear.y = linear_vel_y
-        self.cmd_vel_msg.angular.z = angular_vel_z
-        
-        self.cmd_vel_publisher.publish(self.cmd_vel_msg)
-        
-        self.get_logger().info(f"Cmd: Vx = {linear_vel_x:.3f}, Vy = {linear_vel_y:.3f}, Wz = {angular_vel_z:.3f}, state = {self.state}")
-        
-    def calculate_yaw(self, q):
-        siny_cosp = 2 * (q.w * q.z + q.x * q.y)
-        cosy_sinp = 1 - 2 * (q.y**2 + q.z**2)
-        return math.atan2(siny_cosp, cosy_sinp)
+    def _quaternion_to_yaw(self, q: float) -> float: 
+        return math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y ** 2.0 + q.z ** 2.0))
     
-    def counter(self, w_z):
-        if w_z > 2 * math.pi:
-            return -1
-        elif w_z < -2 * math.pi:
-            return 1
-        else:
-            return 0 
-        
-    def normalize_angle(self, a):
+    def _wrap_angle(self, a: float) -> float:
         return math.atan2(math.sin(a), math.cos(a))
     
-    def reached_active_target(self):
-        if not self.active_target:
-            return False
-
-        dx = self.desired_x - self.current_x
-        dy = self.desired_y - self.current_y
-
-        distance = math.hypot(dx, dy)
-
-        if distance < self.goal_tolerance_pos:
-            self.arrival_time += self.dt
-        else:
-            self.arrival_time = 0.0
-
-        return self.arrival_time > 0.5
+    def _velocity_limit(self, v: float, v_max: float) -> float:
+        if abs(v) > v_max:
+            if v > 0:
+                v = v_max
+            else:
+                v = -v_max
+                
+        return v
     
-    def reset_controller_state(self):
-        self.previous_time = 0.0
-        self.previous_x_p_error = 0.0
-        self.previous_y_p_error = 0.0
-        self.previous_yaw_p_error = 0.0
-
-        self.previous_x_d_error = 0.0
-        self.previous_y_d_error = 0.0
-        self.previous_yaw_d_error = 0.0
+    def _rate_limit(self, v: float, v_prev: float, a_max: float, dt: float) -> float:
+        dv_max = a_max * dt 
+        dv = v - v_prev 
         
-    def on_press(self, key):
-        try:
-            if key == pynput.keyboard.KeyCode.from_char('p'):
-                self.pause_robot = True
-            elif key == pynput.keyboard.KeyCode.from_char('c'):
-                self.pause_robot = False 
-        except AttributeError:
-            pass 
-        
-    def publish_stop(self):
-        self.cmd_vel_msg.linear.x = 0.0
-        self.cmd_vel_msg.linear.y = 0.0
-        self.cmd_vel_msg.angular.z = 0.0
+        if abs(dv) > dv_max:
+            if dv > 0:
+                dv = dv_max
+            else:
+                dv = -dv_max
+                
+        return dv + v_prev
+    
+    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
+        if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
+            return 0.0, 0.0, 0.0
+        return vx, vy, wz 
         
 def main():
     rclpy.init()
     robot_control = RobotControl()
-    rclpy.spin(robot_control)
-    robot_control.destroy_node()
-    rclpy.shutdown()
     
+    try:
+        rclpy.spin(robot_control)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        robot_control.destroy_node()
+        rclpy.shutdown()
+        
 if __name__ == '__main__':
     main()
-    

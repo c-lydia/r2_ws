@@ -1,0 +1,6 @@
+#!/media/lydia-chheng/0EF23A80F23A6BD9/target_setter_v1/docs/.venv/bin/python3
+import sys
+from pybtex.__main__ import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())
