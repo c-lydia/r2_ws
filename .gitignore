@@ -1,0 +1,12 @@
+# ROS2/colcon build artifacts
+/build/
+/install/
+/log/
+
+# IDE metadata
+.vscode/
+src/.vscode/
+*.vc.db
+*.VC.db
+*.opendb
+*.db-journal
