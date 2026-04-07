@@ -41,7 +41,7 @@ PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
 
 class StateMachine(Enum):
-    IDLE = 0
+    IDLE = 0 
     NAVIGATE = 1
     RETURN = 2
     PAUSED = 3
@@ -61,7 +61,7 @@ class RobotControl(Node):
         
         self._reset_client = self.create_client(Trigger, '/reset_odometry', callback_group = cb)
         
-        self.create_timer(0.1, self._timer_callback, callback_group = cb)
+        self.create_timer(0.01, self._timer_callback, callback_group = cb)
         
         self._state = StateMachine.IDLE
         
@@ -152,7 +152,7 @@ class RobotControl(Node):
         else: 
             vx, vy, wz = 0.0, 0.0, 0.0
             
-        # vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
+        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
         
         vx = self._velocity_limit(vx, LINEAR_VEL_MAX)
         vy = self._velocity_limit(vy, LINEAR_VEL_MAX)
@@ -327,10 +327,10 @@ class RobotControl(Node):
                 
         return dv + v_prev
     
-    # def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
-    #     if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
-    #         return 0.0, 0.0, 0.0
-    #     return vx, vy, wz 
+    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
+        if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
+            return 0.0, 0.0, 0.0
+        return vx, vy, wz 
         
 def main():
     rclpy.init()

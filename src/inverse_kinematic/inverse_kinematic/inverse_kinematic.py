@@ -12,6 +12,8 @@ class kinematicPublisher(Node):
         self.cmd_vel_subscriber = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.kinematic_publisher = self.create_publisher(MotorCommand, '/publish_motor', 10)
         
+        self.timer = self.create_timer(0.01, self.timer_callback)
+        
         self.linear_vel_x = 0.0
         self.linear_vel_y = 0.0
         self.angular_vel_z = 0.0
@@ -20,6 +22,7 @@ class kinematicPublisher(Node):
         self.r = 127.0 * 0.001 / 2
         
         self.prev_time = None 
+        self.motor_speed = [0.0] * 4
         self.prev_motor_speed = [0.0] * 4
         
     def cmd_vel_callback(self, cmd_vel_msg):
@@ -27,7 +30,7 @@ class kinematicPublisher(Node):
         self.linear_vel_y = cmd_vel_msg.linear.y
         self.angular_vel_z = cmd_vel_msg.angular.z 
         
-        motor_speed = self.inverse_kinematic(self.linear_vel_x, self.linear_vel_y, self.angular_vel_z)
+        self.motor_speed = self.inverse_kinematic(self.linear_vel_x, self.linear_vel_y, self.angular_vel_z)
         
         current_time = time.perf_counter()
         
@@ -37,19 +40,7 @@ class kinematicPublisher(Node):
         dt = current_time - self.prev_time 
         
         for i in range(4):
-            motor_speed[i] = self.rate_limit(motor_speed[i], A_MAX, self.prev_motor_speed[i], dt)
-            
-        motor_polarity = [1, -1, -1, -1]
-        
-        for i in range(4):
-            motor_msg = MotorCommand()
-            motor_msg.speedmode = True
-            motor_msg.can_id = i + 1
-            motor_msg.goal = motor_polarity[i] * motor_speed[i]
-            self.kinematic_publisher.publish(motor_msg)
-            self.get_logger().info(f'Publishing: {motor_msg}')
-            
-            self.prev_motor_speed[i] = motor_speed[i]
+            self.motor_speed[i] = self.rate_limit(self.motor_speed[i], A_MAX, self.prev_motor_speed[i], dt)
             
         self.prev_time = current_time
         
@@ -77,6 +68,19 @@ class kinematicPublisher(Node):
                 dv = -dv_max 
         
         return dv + v_prev 
+    
+    def timer_callback(self):
+        motor_polarity = [1, -1, -1, -1]
+        
+        for i in range(4):
+            motor_msg = MotorCommand()
+            motor_msg.speedmode = True
+            motor_msg.can_id = i + 1
+            motor_msg.goal = motor_polarity[i] * self.motor_speed[i]
+            self.kinematic_publisher.publish(motor_msg)
+            self.get_logger().info(f'Publishing: {motor_msg}')
+            
+            self.prev_motor_speed[i] = self.motor_speed[i]
         
 def main():
     rclpy.init()

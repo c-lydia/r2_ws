@@ -169,8 +169,8 @@ class CurrentOdometry(Node):
         dt = current_time - s.previous_time 
         s.previous_time = current_time
         
-        s.x -= vx_global * dt 
-        s.y -= vy_global * dt 
+        s.x += vx_global * dt 
+        s.y += vy_global * dt 
         
         if s.x_start is None:
             s.x_start = s.x
@@ -244,9 +244,9 @@ class CurrentOdometry(Node):
         
         corrected_vel = [
             motor_vel[0],
-            -motor_vel[1],
-            -motor_vel[2],
-            -motor_vel[3]
+            motor_vel[1],
+            motor_vel[2],
+            motor_vel[3]
         ]
         
         vx = k * (corrected_vel[0] + corrected_vel[1] + corrected_vel[2] + corrected_vel[3])
