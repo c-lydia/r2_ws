@@ -29,8 +29,8 @@ from typing import List, Tuple
 # - learn state machine
 # - document the code properly for next report
 
-K_P_LINEAR = 0.3
-K_P_ANGULAR = 0.03
+K_P_LINEAR = 0.2
+K_P_ANGULAR = 0.6
 ALPHA = 0.6
 A_MAX = 0.2
 ERROR_THRESHOLD = 0.08
@@ -41,7 +41,7 @@ PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
 
 class StateMachine(Enum):
-    IDLE = 0 
+    IDLE = 0
     NAVIGATE = 1
     RETURN = 2
     PAUSED = 3
@@ -152,7 +152,7 @@ class RobotControl(Node):
         else: 
             vx, vy, wz = 0.0, 0.0, 0.0
             
-        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
+        # vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
         
         vx = self._velocity_limit(vx, LINEAR_VEL_MAX)
         vy = self._velocity_limit(vy, LINEAR_VEL_MAX)
@@ -253,7 +253,7 @@ class RobotControl(Node):
         vx_l = c * vx_g + s * vy_g 
         vy_l = -s * vx_g + c * vy_g 
         
-        self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}')
+        self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}, {yaw_error:.4f}')
         
         return vx_l, vy_l, wz 
     
@@ -327,10 +327,10 @@ class RobotControl(Node):
                 
         return dv + v_prev
     
-    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
-        if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
-            return 0.0, 0.0, 0.0
-        return vx, vy, wz 
+    # def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
+    #     if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
+    #         return 0.0, 0.0, 0.0
+    #     return vx, vy, wz 
         
 def main():
     rclpy.init()

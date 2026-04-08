@@ -181,31 +181,11 @@ class CanDriver(Node, can.Listener):
         
     def on_message_received(self, msg):
         if 100 <= msg.arbitration_id < 200:
-            motor_index = msg.arbitration_id - 100
-
-            current_time = time.perf_counter()
-            dt = current_time - self.prev_time[motor_index]
-            current_position = struct.unpack_from('<f', msg.data, 0)[0]
-            
-            with self.lock:
-                if dt <= 0:
-                    current_speed = 0.0
-                else:
-                    current_speed = (current_position - self.prev_position[motor_index]) / dt
-
-                self.prev_position[motor_index] = current_position
-                current_speed = ALPHA * current_speed + (1 - ALPHA) * self.prev_speed[motor_index]
-                
-                if abs(current_speed) < DEADZONE:
-                    current_speed = 0.0
-                    
-                self.prev_speed[motor_index] = current_speed
-                self.prev_time[motor_index] = current_time
-
             feedback_msg = EncoderFeedback()
             feedback_msg.can_id = msg.arbitration_id
-            feedback_msg.position = current_position
-            feedback_msg.speed = current_speed
+
+            feedback_msg.position = struct.unpack_from("<f", msg.data, 0)[0]
+            feedback_msg.speed = struct.unpack_from("<f", msg.data, 4)[0]
             self.encoder_publisher.publish(feedback_msg)
 
         if 500 <= msg.arbitration_id <= 510:
