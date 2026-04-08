@@ -10,7 +10,7 @@ import time
 import threading
 
 ALPHA = 0.3
-DEADZONE = 0.01
+DEADZONE = 0.08
 
 def run_subprocess(cmd):
     """Executes a command in the subprocess and returns the result."""
@@ -30,7 +30,7 @@ class CanDriver(Node, can.Listener):
         self.shutdown_requested = False
         self.prev_position = [0.0] * 4
         self.prev_speed = [0.0] * 4
-        self.prev_time = [self.get_clock().now()] * 4
+        self.prev_time = [time.perf_counter()] * 4
         
         # Set up signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -183,8 +183,8 @@ class CanDriver(Node, can.Listener):
         if 100 <= msg.arbitration_id < 200:
             motor_index = msg.arbitration_id - 100
 
-            current_time = self.get_clock().now()
-            dt = (current_time - self.prev_time[motor_index]).nanoseconds * 1e-9
+            current_time = time.perf_counter()
+            dt = current_time - self.prev_time[motor_index]
             current_position = struct.unpack_from('<f', msg.data, 0)[0]
             
             with self.lock:
@@ -259,9 +259,10 @@ class CanDriver(Node, can.Listener):
         self.destroy_node()
         self.get_logger().info("Node destroyed. Shutdown complete.")
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    rclpy.init()
     can_driver_node = CanDriver()
+    
     try:
         while rclpy.ok() and not can_driver_node.shutdown_requested:
             rclpy.spin_once(can_driver_node, timeout_sec=0.1)
