@@ -10,7 +10,7 @@ import time
 import threading
 
 ALPHA = 0.3
-DEADZONE = 0.08
+DEADZONE = 0.05
 
 def run_subprocess(cmd):
     """Executes a command in the subprocess and returns the result."""

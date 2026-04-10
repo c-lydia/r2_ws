@@ -32,11 +32,11 @@ from typing import List, Tuple
 K_P_LINEAR = 0.2
 K_P_ANGULAR = 0.6
 ALPHA = 0.6
-A_MAX = 0.2
-ERROR_THRESHOLD = 0.08
+A_MAX = 0.4
+ERROR_THRESHOLD = 0.05
 ANGULAR_VEL_MAX = 1.0
 LINEAR_VEL_MAX = 1.5
-ARRIVAL_THRESHOLD = 0.08
+ARRIVAL_THRESHOLD = 0.05
 PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
 
@@ -245,8 +245,8 @@ class RobotControl(Node):
         
         c, s = math.cos(self._yaw), math.sin(self._yaw)
         
-        vx_l = c * vx_g - s * vy_g 
-        vy_l = s * vx_g + c * vy_g 
+        vx_l = c * vx_g + s * vy_g 
+        vy_l = -s * vx_g + c * vy_g 
         
         self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}, {yaw_error:.4f}')
         
