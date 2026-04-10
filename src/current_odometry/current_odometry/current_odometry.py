@@ -93,8 +93,6 @@ class CurrentOdometry(Node):
                 s.yaw_start = raw_yaw 
             
             s.current_yaw = raw_yaw - s.yaw_start 
-        
-        # self.get_logger().info(f"Motor speeds: {s.motor_vel}, current_yaw = {s.current_yaw:.4f}")
 
     def _encoder_feedback_callback(self, msg: EncoderFeedback) -> None:
         slot = self._classify_can_id(msg.can_id)
@@ -210,7 +208,7 @@ class CurrentOdometry(Node):
 
         if prev_pos is not None and prev_time is not None:
             dt = now - prev_time
-            # Ignore updates with dt < 1ms to avoid spikes
+            
             if dt > 0.0 and dt >= 0.001:
                 state.motor_vel[index] = (position - prev_pos)/dt
 
@@ -236,7 +234,7 @@ class CurrentOdometry(Node):
     def _frame_transform(vx_local: float, vy_local: float, yaw: float) -> Tuple[float, float]:
         c = math.cos(yaw)
         s = math.sin(yaw)
-        return c * vx_local - s * vy_local, s * vx_local + c * vy_local
+        return c * vx_local + s * vy_local, s * vx_local - c * vy_local
     
     @staticmethod
     def _forward_kinematics(motor_vel: List[float]) -> Tuple[float, float]:

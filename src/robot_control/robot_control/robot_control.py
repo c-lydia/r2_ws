@@ -34,9 +34,9 @@ K_P_ANGULAR = 0.6
 ALPHA = 0.6
 A_MAX = 0.2
 ERROR_THRESHOLD = 0.08
-ANGULAR_VEL_MAX = 0.5
-LINEAR_VEL_MAX = 1.0
-ARRIVAL_THRESHOLD = 0.12
+ANGULAR_VEL_MAX = 1.0
+LINEAR_VEL_MAX = 1.5
+ARRIVAL_THRESHOLD = 0.08
 PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
 
@@ -152,7 +152,12 @@ class RobotControl(Node):
         else: 
             vx, vy, wz = 0.0, 0.0, 0.0
             
-        # vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
+        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
+        
+        if vx == 0.0 and vy == 0.0 and wz == 0.0:
+            self._prev_vx = 0.0
+            self._prev_vy = 0.0
+            self._prev_wz = 0.0
         
         vx = self._velocity_limit(vx, LINEAR_VEL_MAX)
         vy = self._velocity_limit(vy, LINEAR_VEL_MAX)
@@ -196,12 +201,11 @@ class RobotControl(Node):
             self._arrival_time = 0.0
             self._reset_controller_state()
 
-            # Force immediate stop - bypass rate limiter
             self._prev_vx = 0.0
             self._prev_vy = 0.0
             self._prev_wz = 0.0
             
-            self._publish_stop()  # Send zero velocity immediately
+            self._publish_stop()
 
             self._state = StateMachine.PAUSED
             self.get_logger().info(f'Waypoint reached, pausing')
@@ -239,19 +243,10 @@ class RobotControl(Node):
         vy_g = K_P_LINEAR * dy_g 
         wz = K_P_ANGULAR * yaw_error 
         
-        if abs(dx_g) < ARRIVAL_THRESHOLD:
-            vx_g = 0.0
-            
-        if abs(dy_g) < ARRIVAL_THRESHOLD:
-            vy_g = 0.0
-            
-        if abs(dx_g) < ARRIVAL_THRESHOLD and abs(dy_g) < ARRIVAL_THRESHOLD:
-            wz = 0.0
-        
         c, s = math.cos(self._yaw), math.sin(self._yaw)
         
-        vx_l = c * vx_g + s * vy_g 
-        vy_l = -s * vx_g + c * vy_g 
+        vx_l = c * vx_g - s * vy_g 
+        vy_l = s * vx_g + c * vy_g 
         
         self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}, {yaw_error:.4f}')
         
@@ -327,10 +322,10 @@ class RobotControl(Node):
                 
         return dv + v_prev
     
-    # def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
-    #     if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
-    #         return 0.0, 0.0, 0.0
-    #     return vx, vy, wz 
+    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
+        if math.hypot(vx, vy) + k_w * abs(wz) < threshold:
+            return 0.0, 0.0, 0.0
+        return vx, vy, wz 
         
 def main():
     rclpy.init()
