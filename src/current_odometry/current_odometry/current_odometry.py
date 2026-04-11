@@ -30,7 +30,7 @@ NUM_DRIVE_MOTORS = 4
 ROTARY_X_MOTOR_ID = 10
 ROTARY_Y_MOTOR_ID = 9
 
-DEADZONE = 0.05
+DEADZONE = 0.08
 
 class OdomState:
     def __init__(self):
@@ -248,7 +248,7 @@ class CurrentOdometry(Node):
         ]
         
         vx = k * (corrected_vel[0] + corrected_vel[1] + corrected_vel[2] + corrected_vel[3])
-        vy = k * (-corrected_vel[0] + corrected_vel[1] - corrected_vel[2] + corrected_vel[3])
+        vy = k * (corrected_vel[0] - corrected_vel[1] + corrected_vel[2] - corrected_vel[3])
 
         return vx, vy
     

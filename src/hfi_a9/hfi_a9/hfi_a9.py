@@ -182,13 +182,13 @@ class ImuPublisher(Node):
                 acc_k = 1
             
             if self.gra_normalization:
-                imu_msg.linear_acceleration.x = self.acceleration[0] * -9.8 / acc_k
-                imu_msg.linear_acceleration.y = self.acceleration[1] * -9.8 / acc_k
-                imu_msg.linear_acceleration.z = self.acceleration[2] * -9.8 / acc_k
+                imu_msg.linear_acceleration.x = self.acceleration[0] * 9.8 / acc_k
+                imu_msg.linear_acceleration.y = self.acceleration[1] * 9.8 / acc_k
+                imu_msg.linear_acceleration.z = self.acceleration[2] * 9.8 / acc_k
             else:
-                imu_msg.linear_acceleration.x = self.acceleration[0] * -9.8
-                imu_msg.linear_acceleration.y = self.acceleration[1] * -9.8
-                imu_msg.linear_acceleration.z = self.acceleration[2] * -9.8
+                imu_msg.linear_acceleration.x = self.acceleration[0] * 9.8
+                imu_msg.linear_acceleration.y = self.acceleration[1] * 9.8
+                imu_msg.linear_acceleration.z = self.acceleration[2] * 9.8
 
             mag_msg.magnetic_field.x = self.magnetometer[0]
             mag_msg.magnetic_field.y = self.magnetometer[1]

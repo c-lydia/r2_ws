@@ -30,7 +30,7 @@ from typing import List, Tuple
 # - document the code properly for next report
 
 K_P_LINEAR = 0.2
-K_P_ANGULAR = 0.6
+K_P_ANGULAR = 0.3
 ALPHA = 0.6
 A_MAX = 0.4
 ERROR_THRESHOLD = 0.05
@@ -201,11 +201,12 @@ class RobotControl(Node):
             self._arrival_time = 0.0
             self._reset_controller_state()
 
+            # Force immediate stop - bypass rate limiter
             self._prev_vx = 0.0
             self._prev_vy = 0.0
             self._prev_wz = 0.0
             
-            self._publish_stop()
+            self._publish_stop()  # Send zero velocity immediately
 
             self._state = StateMachine.PAUSED
             self.get_logger().info(f'Waypoint reached, pausing')
@@ -237,20 +238,22 @@ class RobotControl(Node):
         dy_g = self._active_wp['y'] - self._y 
         
         desired_yaw = math.atan2(dy_g, dx_g)
-        yaw_error = self._wrap_angle(desired_yaw - self._yaw)
+        raw_diff = desired_yaw - self._yaw
+
+        angular_error = self._wrap_angle(raw_diff)
         
         vx_g = K_P_LINEAR * dx_g 
-        vy_g = K_P_LINEAR * dy_g 
-        wz = K_P_ANGULAR * yaw_error 
+        vy_g = K_P_LINEAR * dy_g  
+        wz = K_P_ANGULAR * angular_error
         
         c, s = math.cos(self._yaw), math.sin(self._yaw)
         
         vx_l = c * vx_g + s * vy_g 
         vy_l = -s * vx_g + c * vy_g 
         
-        self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}, {yaw_error:.4f}')
+        self.get_logger().info(f'error: {dx_g:.4f}, {dy_g:4f}, {angular_error:.4f}')
         
-        return vx_l, vy_l, wz 
+        return vx_l, -vy_l, -wz
     
     def _activate_next_waypoint(self) -> None:
         self._active_wp = self._waypoints.pop(0)
