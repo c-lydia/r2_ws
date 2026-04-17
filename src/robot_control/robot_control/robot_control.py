@@ -33,12 +33,14 @@ K_P_LINEAR = 0.2
 K_P_ANGULAR = 0.3
 ALPHA = 0.6
 A_MAX = 0.4
-ERROR_THRESHOLD = 0.05
+ERROR_THRESHOLD = 0.01
 ANGULAR_VEL_MAX = 1.0
 LINEAR_VEL_MAX = 1.5
-ARRIVAL_THRESHOLD = 0.05
+ARRIVAL_THRESHOLD = 0.03
 PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
+LOOK_AHEAD_DISTANCE = 0.3 
+MIN_VEL = 0.08
 
 class StateMachine(Enum):
     IDLE = 0
@@ -149,6 +151,13 @@ class RobotControl(Node):
             
         if self._active_wp and self._state in (StateMachine.NAVIGATE, StateMachine.RETURN):
             vx, vy, wz = self._p_controller()
+            
+            if abs(vx) > 0.001 and abs(vx) < MIN_VEL:
+                vx = math.copysign(MIN_VEL, vx)
+                
+            if abs(vy) > 0.001 and abs(vy) < MIN_VEL:
+                vy = math.copysign(MIN_VEL, vy)
+                
         else: 
             vx, vy, wz = 0.0, 0.0, 0.0
             
@@ -237,9 +246,19 @@ class RobotControl(Node):
         dx_g = self._active_wp['x'] - self._x
         dy_g = self._active_wp['y'] - self._y 
         
-        desired_yaw = math.atan2(dy_g, dx_g)
+        distance_to_goal = math.hypot(dx_g, dy_g)
+        
+        if distance_to_goal > LOOK_AHEAD_DISTANCE:
+            ratio = LOOK_AHEAD_DISTANCE/distance_to_goal
+            
+            virtual_dx = dx_g * ratio 
+            virtual_dy = dy_g * ratio 
+            
+            desired_yaw = math.atan2(virtual_dx, virtual_dy)
+        else:
+            desired_yaw = math.atan2(dy_g, dx_g)
+            
         raw_diff = desired_yaw - self._yaw
-
         angular_error = self._wrap_angle(raw_diff)
         
         vx_g = K_P_LINEAR * dx_g 
@@ -270,10 +289,8 @@ class RobotControl(Node):
         if self._active_wp is None:
             return False
 
-        dx = self._active_wp['x'] - self._x
-        dy = self._active_wp['y'] - self._y
-
-        return abs(dx) < ARRIVAL_THRESHOLD and abs(dy) < ARRIVAL_THRESHOLD
+        dist = math.hypot(self._active_wp['x'] - self._x, self._active_wp['y'] - self._y)
+        return dist < ARRIVAL_THRESHOLD
     
     def _tick_dt(self) -> float:
         now = time.perf_counter()

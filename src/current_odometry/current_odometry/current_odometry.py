@@ -30,7 +30,7 @@ NUM_DRIVE_MOTORS = 4
 ROTARY_X_MOTOR_ID = 10
 ROTARY_Y_MOTOR_ID = 9
 
-DEADZONE = 0.08
+DEADZONE = 0.01
 
 class OdomState:
     def __init__(self):
