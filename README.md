@@ -1,5 +1,11 @@
 # Target_Setter_v1
 
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![ROS2](https://img.shields.io/badge/ROS2-humble-22314E?logo=ros&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10-3776ab?logo=python&logoColor=white)
+![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
+![Docs](https://img.shields.io/badge/docs-RST-8CA1AF?logo=readthedocs&logoColor=white)
+![venv](https://img.shields.io/badge/venv-enabled-4B8BBE?logo=python&logoColor=white)
 ![Stars](https://img.shields.io/github/stars/c-lydia/r2_ws?style=flat)
 ![Forks](https://img.shields.io/github/forks/c-lydia/r2_ws?style=flat)
 ![Watchers](https://img.shields.io/github/watchers/c-lydia/r2_ws?style=flat)
