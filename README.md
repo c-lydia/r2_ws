@@ -1,6 +1,6 @@
 # Target_Setter_v1
 
-![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 ![ROS2](https://img.shields.io/badge/ROS2-humble-22314E?logo=ros&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10-3776ab?logo=python&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
