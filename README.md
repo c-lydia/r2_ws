@@ -1,5 +1,12 @@
 # Target_Setter_v1
 
+![Stars](https://img.shields.io/github/stars/c-lydia/r2_ws?style=flat)
+![Forks](https://img.shields.io/github/forks/c-lydia/r2_ws?style=flat)
+![Watchers](https://img.shields.io/github/watchers/c-lydia/r2_ws?style=flat)
+![Release](https://img.shields.io/github/v/release/c-lydia/r2_ws)
+![Issues](https://img.shields.io/github/issues/c-lydia/r2_ws?color=yellow)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=c-lydia.r2_ws)
+
 ## Packages
 
 This project has 2 packages:
