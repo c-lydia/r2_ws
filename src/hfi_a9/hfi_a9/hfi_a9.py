@@ -165,7 +165,7 @@ class ImuPublisher(Node):
             mag_msg.header.frame_id = "base_link"
 
             angle_radian = [self.angle_degree[i] * math.pi / 180 for i in range(3)]
-            qua = quaternion_from_euler(angle_radian[0], angle_radian[1], angle_radian[2])
+            qua = quaternion_from_euler(angle_radian[0], angle_radian[1], -angle_radian[2])
 
             imu_msg.orientation.x = qua.x
             imu_msg.orientation.y = qua.y
@@ -175,7 +175,7 @@ class ImuPublisher(Node):
 
             imu_msg.angular_velocity.x = self.angularVelocity[0]
             imu_msg.angular_velocity.y = self.angularVelocity[1]
-            imu_msg.angular_velocity.z = self.angularVelocity[2]
+            imu_msg.angular_velocity.z = -self.angularVelocity[2]
             
             acc_k = math.sqrt(self.acceleration[0] ** 2 + self.acceleration[1] ** 2 + self.acceleration[2] ** 2)
             if acc_k == 0:
@@ -238,7 +238,6 @@ class ImuPublisher(Node):
         cosy_cosp = 1 - 2 * (y * y + z * z)
         #self.imu_raw_yaw = math.atan2(siny_cosp, cosy_cosp)
         return math.atan2(siny_cosp, cosy_cosp)
-
 
 def main(args=None):
     rclpy.init(args=args)

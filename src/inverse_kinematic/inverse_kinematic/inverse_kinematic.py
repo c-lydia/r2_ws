@@ -4,7 +4,7 @@ from custom_messages.msg import MotorCommand
 from geometry_msgs.msg import Twist 
 import math, time
 
-A_MAX = 20.0
+A_MAX = 15.0
 
 class kinematicPublisher(Node): 
     def __init__(self): 
