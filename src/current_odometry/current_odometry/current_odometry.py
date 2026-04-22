@@ -223,10 +223,12 @@ class CurrentOdometry(Node):
         if stationary:
             vx_global = 0.0
             vy_global = 0.0
+            s.previous_time = current_time
 
         if math.hypot(self._cmd_vx, self._cmd_vy) < CMD_LINEAR_EPS:
             vx_global = 0.0
             vy_global = 0.0
+            s.previous_time = current_time
         
         s.x += vx_global * dt 
         s.y += vy_global * dt 
