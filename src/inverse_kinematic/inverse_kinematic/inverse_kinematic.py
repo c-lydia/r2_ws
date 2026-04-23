@@ -38,14 +38,12 @@ class kinematicPublisher(Node):
         
         for i in range(4):
             motor_speed[i] = self.rate_limit(motor_speed[i], A_MAX, self.prev_motor_speed[i], dt)
-            
-        motor_polarity = [-1, 1, 1, 1]
         
         for i in range(4):
             motor_msg = MotorCommand()
             motor_msg.speedmode = True
             motor_msg.can_id = i + 1
-            motor_msg.goal = -motor_polarity[i] * motor_speed[i]
+            motor_msg.goal = motor_speed[i]
             self.kinematic_publisher.publish(motor_msg)
             self.get_logger().info(f'Publishing: {motor_msg}')
             

@@ -14,7 +14,7 @@ class UdpSender(Node):
         self.sender_timer = self.create_timer(0.1, self.sender_timer_callback)
         self.sender_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.current_target_ip = ''
-        self.current_target_port = 5050
+        self.current_target_port = 5051
         self.current_odom = None
         self.prev_current_odom = None
 
@@ -67,7 +67,6 @@ class UdpSender(Node):
 
             except Exception as e:
                 self.get_logger().warn(f'Error sending UDP data: {e}')
-
 
     def calculate_yaw(self, q):
         siny_cosp = 2 * (q.w * q.z + q.x * q.y)

@@ -187,12 +187,12 @@ class CanDriver(Node, can.Listener):
             raw_position = struct.unpack_from("<f", msg.data, 0)[0]
             raw_speed = struct.unpack_from("<f", msg.data, 4)[0]
             
-            motor_polarity = [-1, 1, 1, 1]
+            motor_polarity = [1, 1, 1, 1]
             idx = msg.arbitration_id - 100
             
             if 0 <= idx < len(motor_polarity):
-                feedback_msg.position = -raw_position * motor_polarity[idx]
-                feedback_msg.speed = -raw_speed * motor_polarity[idx]
+                feedback_msg.position = raw_position * motor_polarity[idx]
+                feedback_msg.speed = raw_speed * motor_polarity[idx]
             
             self.encoder_publisher.publish(feedback_msg)
 

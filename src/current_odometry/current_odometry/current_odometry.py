@@ -32,7 +32,7 @@ ROTARY_X_MOTOR_ID = 10
 ROTARY_Y_MOTOR_ID = 9
 
 DEADZONE = 0.01
-PUBLISHED_YAW_SIGN = -1.0
+PUBLISHED_YAW_SIGN = 1.0
 RAW_SPEED_EPS = 0.02
 LOCAL_SPEED_EPS = 0.01
 STATIONARY_HOLD_S = 0.05
@@ -289,7 +289,11 @@ class CurrentOdometry(Node):
 
     @staticmethod
     def _wrap_angle(a: float) -> float:
-        return math.atan2(math.sin(a), math.cos(a))
+        if abs(a) > math.pi:
+            if a > 0.0:
+                a -= 2 * math.pi
+            else:
+                a += 2 * math.pi
     
     @staticmethod
     def _yaw_to_quaternion(yaw: float) -> Quaternion:
@@ -310,15 +314,8 @@ class CurrentOdometry(Node):
     def _forward_kinematics(motor_vel: List[float]) -> Tuple[float, float]:
         k = 1.0/(2.0 * math.sqrt(2.0))
         
-        corrected_vel = [
-            motor_vel[0],
-            motor_vel[1],
-            motor_vel[2],
-            motor_vel[3]
-        ]
-        
-        vx = k * (corrected_vel[0] + corrected_vel[1] + corrected_vel[2] + corrected_vel[3])
-        vy = k * (corrected_vel[0] - corrected_vel[1] + corrected_vel[2] - corrected_vel[3])
+        vx = k * (motor_vel[0] + motor_vel[1] + motor_vel[2] + motor_vel[3])
+        vy = k * (motor_vel[0] - motor_vel[1] + motor_vel[2] - motor_vel[3])
 
         return vx, vy
     
