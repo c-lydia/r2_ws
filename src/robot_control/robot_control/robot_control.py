@@ -29,7 +29,7 @@ from typing import List, Tuple
 # - learn state machine
 # - document the code properly for next report
 
-K_P = 0.3
+K_P = 0.2
 A_MAX = 0.2
 ERROR_THRESHOLD = 0.02
 ANGULAR_VEL_MAX = 0.5
@@ -37,7 +37,7 @@ LINEAR_VEL_MAX = 1.0
 ARRIVAL_THRESHOLD = 0.05
 PAUSE_DURATION = 0.5
 ODOM_RESET_TIMEOUT = 2.0
-CAN_RESET_TIMEOUT = 2.0 
+ANGULAR_VEL_DEADZONE = 0.05
 
 class StateMachine(Enum):
     IDLE = 0
@@ -81,6 +81,8 @@ class RobotControl(Node):
         self._prev_vy: float = 0.0
         self._prev_wz: float = 0.0
         self._prev_time: float = time.perf_counter()
+        
+        self._wp_reached_time: float | None = None
         
         if self._reset_client.wait_for_service(timeout_sec = ODOM_RESET_TIMEOUT):
             self._reset_client.call_async(Trigger.Request())
@@ -130,6 +132,7 @@ class RobotControl(Node):
             self._active_wp['x'] = msg.x 
             self._active_wp['y'] = msg.y 
             self._arrival_time = 0.0
+            self._wp_reached_time = None
             self.get_logger().info(f'Active waypoint {idx} updated in-motion')
             
     def _return_callback(self, msg: Return) -> None:
@@ -140,10 +143,6 @@ class RobotControl(Node):
         
         if self._state == StateMachine.IDLE:
             self._handle_idle()
-        elif self._state == StateMachine.NAVIGATE:
-            self._handle_navigate()
-        elif self._state == StateMachine.RETURN:
-            self._handle_return()
         elif self._state == StateMachine.PAUSED:
             self._handle_paused(dt)
             
@@ -164,7 +163,12 @@ class RobotControl(Node):
         self._prev_vy = vy
         self._prev_wz = wz
         
-        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD)
+        vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD, ANGULAR_VEL_DEADZONE)
+        
+        if self._state == StateMachine.NAVIGATE:
+            self._handle_navigate()
+        elif self._state == StateMachine.RETURN:
+            self._handle_return()
         
         self._publish_vel(vx, vy, wz)
         
@@ -185,13 +189,8 @@ class RobotControl(Node):
             else:
                 self._active_wp = None
                 self._state = StateMachine.IDLE 
-                self._publish_stop()
-        elif self._state == StateMachine.RETURN and self._history:
-            self._activate_return_waypoint()
-            self.get_logger().info(f"Returning to waypoint {self._active_wp['index']}")
         else:
             self._active_wp = None
-            self._publish_stop()
             self.get_logger().info(f'No waypoint to continue')
                         
     def _handle_navigate(self) -> None:
@@ -214,18 +213,14 @@ class RobotControl(Node):
             return 
         
         if self._reached_wp():
-            self._history.append(self._active_wp)
             self._active_wp = None 
             self._pause_at_wp = True
             self._arrival_time = 0.0 
             self._reset_controller_state()
-            self._publish_stop()
             self._state = StateMachine.PAUSED 
             self.get_logger().info(f'Return waypoint reached, pausing')
             
     def _handle_paused(self, dt: float) -> None:
-        self._publish_stop()
-        
         if self._pause_robot:
             return 
         
@@ -262,11 +257,13 @@ class RobotControl(Node):
     def _activate_next_waypoint(self) -> None:
         self._active_wp = self._waypoints.pop(0)
         self._reset_controller_state()
+        self._wp_reached_time = None
         self.get_logger().info(f"Activated waypoint {self._active_wp['index']}")
         
     def _activate_return_waypoint(self) -> None:
         self._active_wp = self._history.pop()
         self._reset_controller_state()
+        self._wp_reached_time = None
         self.get_logger().info(f"Returning to waypoint {self._active_wp['index']}")
 
     def _reset_controller_state(self) -> None: 
@@ -275,14 +272,24 @@ class RobotControl(Node):
         self._prev_wz = 0.0
         self._prev_time = time.perf_counter()
         
-    def _reached_wp(self) -> bool: 
+    def _reached_wp(self) -> bool:
         if self._active_wp is None:
-            return False 
-        
-        dx = self._active_wp['x'] - self._x 
-        dy = self._active_wp['y'] - self._y 
-        
-        return math.hypot(dx, dy) < ARRIVAL_THRESHOLD
+            return False
+
+        dx = self._active_wp['x'] - self._x
+        dy = self._active_wp['y'] - self._y
+        dist = math.hypot(dx, dy)
+
+        now = time.perf_counter()
+
+        if dist < ARRIVAL_THRESHOLD:
+            if self._wp_reached_time is None:
+                self._wp_reached_time = now
+
+            return (now - self._wp_reached_time) > 0.2
+
+        self._wp_reached_time = None
+        return False
     
     def _tick_dt(self) -> float:
         now = time.perf_counter()
@@ -301,6 +308,10 @@ class RobotControl(Node):
         self._publish_vel(0.0, 0.0, 0.0)
         
     def resume(self) -> None: 
+        if self._state != StateMachine.PAUSED:
+            self.get_logger().warn(f'resume() called in invalid state: {self._state.name}')
+            return
+    
         self._pause_robot = False 
         self._pause_at_wp = False 
         self._arrival_time = 0.0
@@ -339,14 +350,14 @@ class RobotControl(Node):
                 
         return dv + v_prev
     
-    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, k_w: float = 1.0) -> Tuple[float, float, float]:
+    def _deadzone(self, vx: float, vy: float, wz: float, threshold: float, angular_threshold: float) -> Tuple[float, float, float]:
         if abs(vx) < threshold:
             vx = 0.0 
             
         if abs(vy) < threshold:
             vy = 0.0 
             
-        if abs(wz) < threshold:
+        if abs(wz) < angular_threshold:
             wz = 0.0 
             
         return vx, vy, wz

@@ -4,7 +4,7 @@ from custom_messages.msg import MotorCommand
 from geometry_msgs.msg import Twist 
 import math, time
 
-A_MAX = 15.0
+A_MAX = 0.15
 
 class kinematicPublisher(Node): 
     def __init__(self): 
@@ -53,10 +53,10 @@ class kinematicPublisher(Node):
         
     def inverse_kinematic(self, vx, vy, wz):
         vel_motor = [
+            ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) - ((self.l/self.r) * wz),
             ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) - ((self.l/self.r) * wz),
             ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) + ((self.l/self.r) * wz),
-            ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) + ((self.l/self.r) * wz),
-            ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) - ((self.l/self.r) * wz)
+            ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) + ((self.l/self.r) * wz)
         ]
         
         return vel_motor

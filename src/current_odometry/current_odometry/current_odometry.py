@@ -33,6 +33,8 @@ ROTARY_Y_MOTOR_ID = 9
 
 DEADZONE = 0.01
 PUBLISHED_YAW_SIGN = 1.0
+PUBLISHED_VX_SIGN = 1.0
+PUBLISHED_VY_SIGN = -1.0
 RAW_SPEED_EPS = 0.02
 LOCAL_SPEED_EPS = 0.01
 STATIONARY_HOLD_S = 0.05
@@ -53,8 +55,9 @@ class OdomState:
         self.current_yaw_raw: float = 0.0
         self.current_yaw: float = 0.0
         self.yaw_start: float | None = None
-        self.prev_imu_yaw_meas: float | None = None
+        self.prev_imu_yaw_meas = 0.0
         self.yaw_unwrapped: float = 0.0
+        self.prev_yaw = None 
         
         self.previous_time: float = 0.0
         
@@ -95,25 +98,23 @@ class CurrentOdometry(Node):
         self.get_logger().info('CurentOdometry node initialized')
 
     def _imu_callback(self, msg: Imu) -> None:
-        raw_yaw = self._quaternion_to_yaw(
-            msg.orientation.x, 
-            msg.orientation.y,
-            msg.orientation.z,
-            msg.orientation.w
-        ) 
+        qx = msg.orientation.x 
+        qy = msg.orientation.y
+        qz = msg.orientation.z
+        qw = msg.orientation.w
         
+        raw_yaw = math.atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy ** 2.0 + qz ** 2.0))
+
         with self._lock:
-            s = self._state 
-            
+            s = self._state
+
             if s.prev_imu_yaw_meas is None:
                 s.prev_imu_yaw_meas = raw_yaw
                 s.yaw_unwrapped = 0.0
             else:
                 delta = self._wrap_angle(raw_yaw - s.prev_imu_yaw_meas)
-
                 if abs(delta) < IMU_YAW_DELTA_DEADZONE:
                     delta = 0.0
-
                 s.yaw_unwrapped += delta
                 s.prev_imu_yaw_meas = raw_yaw
 
@@ -141,6 +142,9 @@ class CurrentOdometry(Node):
                 vx_local, vy_local = 0.0, 0.0
             else:
                 vx_local, vy_local = self._select_valocity_source(s)
+
+            vx_local *= PUBLISHED_VX_SIGN
+            vy_local *= PUBLISHED_VY_SIGN
 
             yaw_snapshot = s.current_yaw_raw
             vx_global, vy_global = self._frame_transform(vx_local, vy_local, yaw_snapshot)
@@ -294,6 +298,7 @@ class CurrentOdometry(Node):
                 a -= 2 * math.pi
             else:
                 a += 2 * math.pi
+        return a
     
     @staticmethod
     def _yaw_to_quaternion(yaw: float) -> Quaternion:
@@ -315,7 +320,7 @@ class CurrentOdometry(Node):
         k = 1.0/(2.0 * math.sqrt(2.0))
         
         vx = k * (motor_vel[0] + motor_vel[1] + motor_vel[2] + motor_vel[3])
-        vy = k * (motor_vel[0] - motor_vel[1] + motor_vel[2] - motor_vel[3])
+        vy = k * (-motor_vel[0] + motor_vel[1] - motor_vel[2] + motor_vel[3])
 
         return vx, vy
     
