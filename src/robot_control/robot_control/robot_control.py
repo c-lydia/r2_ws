@@ -29,7 +29,7 @@ from typing import List, Tuple
 # - learn state machine
 # - document the code properly for next report
 
-K_P = 0.2
+K_P = 0.6
 A_MAX = 0.2
 ERROR_THRESHOLD = 0.02
 ANGULAR_VEL_MAX = 0.5
