@@ -30,6 +30,7 @@ from typing import List, Tuple
 # - document the code properly for next report
 
 K_P = 0.6
+K_P_YAW = 0.1
 A_MAX = 0.2
 ERROR_THRESHOLD = 0.02
 ANGULAR_VEL_MAX = 0.5
@@ -96,48 +97,81 @@ class RobotControl(Node):
         self._yaw = self._quaternion_to_yaw(msg.pose.pose.orientation)
         
     def _wp_callback(self, msg: WaypointBatch) -> None:
-        waypoints: List[Waypoint | None] = [None] * len(msg.waypoint)
+        incoming: dict[int, dict] = {}
         
         for wp in msg.waypoint:
-            waypoints[wp.index] = {
+            incoming[wp.index] = {
                 'index': wp.index,
-                'x': wp.x, 
-                'y': wp.y, 
-                'version': wp.version
+                'x': wp.x,
+                'y': wp.y,
+                'version': wp.version,
             }
-        
-        for wp in waypoints:
-            if wp is not None:
-                self._waypoints.append(wp)
+ 
+        for idx in sorted(incoming):
+            self._waypoints.append(incoming[idx])
         
         if self._state in (StateMachine.IDLE, StateMachine.PAUSED):
             if self._waypoints:
                 self._activate_next_waypoint()
                 self._state = StateMachine.NAVIGATE
-            elif self._state == StateMachine.IDLE:
-                self._active_wp = None
-                self._state = StateMachine.IDLE
             
     def _edit_callback(self, msg: UpdateWaypoint) -> None:
+        self.get_logger().info(f"Edit callback triggered: edited={msg.edited}, idx={msg.index}, ver={msg.version}, x={msg.x}, y={msg.y}")
         if not msg.edited:
-            return 
-        
-        idx = msg.index 
-        
-        if idx < len(self._waypoints) and self._waypoints[idx] is not None:
-            self._waypoints[idx]['x'] = msg.x 
-            self._waypoints[idx]['y'] = msg.y 
-            
-        if self._active_wp and self._active_wp['index'] == idx:
-            self._active_wp['x'] = msg.x 
-            self._active_wp['y'] = msg.y 
-            self._arrival_time = 0.0
+            self.get_logger().info("Edit flag is False, ignoring.")
+            return
+
+        idx = msg.index
+
+        self.get_logger().info(f"Waypoints before edit: {[{'index': w['index'], 'version': w['version'], 'x': w['x'], 'y': w['y']} for w in self._waypoints]}")
+        if self._active_wp is not None:
+            self.get_logger().info(f"Active waypoint before edit: {{'index': {self._active_wp['index']}, 'version': {self._active_wp['version']}, 'x': {self._active_wp['x']}, 'y': {self._active_wp['y']}}}")
+
+        def _apply(wp: dict) -> bool:
+            if wp['index'] == idx and msg.version >= wp['version']:
+                self.get_logger().info(f"Updating waypoint index {idx}: old version={wp['version']}, new version={msg.version}, old x={wp['x']}, old y={wp['y']}, new x={msg.x}, new y={msg.y}")
+                wp['x'] = msg.x
+                wp['y'] = msg.y
+                wp['version'] = msg.version
+                return True
+            return False
+
+        updated = False
+        for wp in self._waypoints:
+            if _apply(wp):
+                updated = True
+
+        if self._active_wp is not None and _apply(self._active_wp):
             self._wp_reached_time = None
             self.get_logger().info(f'Active waypoint {idx} updated in-motion')
+            updated = True
+
+        if not updated:
+            self.get_logger().info(f"No waypoint updated for idx={idx}, ver={msg.version}")
+        else:
+            self.get_logger().info(f"Waypoints after edit: {[{'index': w['index'], 'version': w['version'], 'x': w['x'], 'y': w['y']} for w in self._waypoints]}")
+            if self._active_wp is not None:
+                self.get_logger().info(f"Active waypoint after edit: {{'index': {self._active_wp['index']}, 'version': {self._active_wp['version']}, 'x': {self._active_wp['x']}, 'y': {self._active_wp['y']}}}")
             
     def _return_callback(self, msg: Return) -> None:
-        self._return_requested = msg.flag
-        
+        if msg.flag and not self._return_requested:
+            self._return_requested = True
+            self.get_logger().info('Return requested')
+ 
+            if self._state == StateMachine.NAVIGATE:
+                self._waypoints.clear()
+                self._active_wp = None
+                self._reset_controller_state()
+                self._return_requested = False
+ 
+                if self._history:
+                    self._activate_return_waypoint()
+                    self._state = StateMachine.RETURN
+                    self.get_logger().info(f"Returning immediately to waypoint {self._active_wp['index']}")
+                else:
+                    self._state = StateMachine.IDLE
+                    self.get_logger().info('Return requested but history is empty')
+
     def _timer_callback(self) -> None:
         dt = self._tick_dt()
         
@@ -145,10 +179,25 @@ class RobotControl(Node):
             self._handle_idle()
         elif self._state == StateMachine.PAUSED:
             self._handle_paused(dt)
-            
+
+        state_after_pause = self._state
+ 
+        if self._state == StateMachine.NAVIGATE:
+            self._handle_navigate()
+        elif self._state == StateMachine.RETURN:
+            self._handle_return()
+
+        if self._state != state_after_pause and self._state not in (
+            StateMachine.NAVIGATE, StateMachine.RETURN
+        ):
+            self._publish_stop()
+            self._reset_controller_state()
+            self.get_logger().info(f'State: {self._state.name} — stop published')
+            return
+ 
         if self._active_wp and self._state in (StateMachine.NAVIGATE, StateMachine.RETURN):
             vx, vy, wz = self._p_controller()
-        else: 
+        else:
             vx, vy, wz = 0.0, 0.0, 0.0
         
         vx = self._velocity_limit(vx, LINEAR_VEL_MAX)
@@ -165,15 +214,9 @@ class RobotControl(Node):
         
         vx, vy, wz = self._deadzone(vx, vy, wz, ERROR_THRESHOLD, ANGULAR_VEL_DEADZONE)
         
-        if self._state == StateMachine.NAVIGATE:
-            self._handle_navigate()
-        elif self._state == StateMachine.RETURN:
-            self._handle_return()
-        
         self._publish_vel(vx, vy, wz)
-        
-        self.get_logger().info(f'state: {self._state.name}, vx: {vx:.3f}, vy: {vy:.3f}, wz: {wz:.3f}')
-        
+        self.get_logger().info(f'State: {self._state.name}, vx: {vx:.3f}, vy: {vy:.3f}, wz: {wz:.3f}')
+
     def _handle_idle(self) -> None:
         if self._waypoints:
             self._activate_next_waypoint()
@@ -196,16 +239,16 @@ class RobotControl(Node):
     def _handle_navigate(self) -> None:
         if self._active_wp is None:
             self._state = StateMachine.IDLE
-            return 
-        
+            return
+
         if self._reached_wp():
             self._history.append(self._active_wp)
             self._active_wp = None
             self._pause_at_wp = True
             self._arrival_time = 0.0
-            self._reset_controller_state()
+            self._wp_reached_time = None
             self._state = StateMachine.PAUSED
-            self.get_logger().info(f'Waypoint reached, pausing')
+            self.get_logger().info('Waypoint reached, pausing')
             
     def _handle_return(self) -> None:
         if self._active_wp is None:
@@ -243,7 +286,7 @@ class RobotControl(Node):
         
         vx_g = K_P * dx_g 
         vy_g = K_P * dy_g 
-        wz = K_P * yaw_error 
+        wz = K_P_YAW * yaw_error 
         
         c, s = math.cos(self._yaw), math.sin(self._yaw)
         
@@ -270,24 +313,23 @@ class RobotControl(Node):
         self._prev_vx = 0.0
         self._prev_vy = 0.0
         self._prev_wz = 0.0
-        self._prev_time = time.perf_counter()
         
     def _reached_wp(self) -> bool:
         if self._active_wp is None:
             return False
-
+ 
         dx = self._active_wp['x'] - self._x
         dy = self._active_wp['y'] - self._y
         dist = math.hypot(dx, dy)
-
+ 
         now = time.perf_counter()
-
+ 
         if dist < ARRIVAL_THRESHOLD:
             if self._wp_reached_time is None:
                 self._wp_reached_time = now
-
+                return False
             return (now - self._wp_reached_time) > 0.2
-
+ 
         self._wp_reached_time = None
         return False
     
@@ -306,6 +348,16 @@ class RobotControl(Node):
         
     def _publish_stop(self) -> None:
         self._publish_vel(0.0, 0.0, 0.0)
+        
+    def pause(self) -> None:
+        if self._state not in (StateMachine.NAVIGATE, StateMachine.RETURN, StateMachine.PAUSED):
+            self.get_logger().warn(f'pause() called in invalid state: {self._state.name}')
+            return
+        
+        self._pause_robot = True
+        self._state = StateMachine.PAUSED
+        self._publish_stop()
+        self.get_logger().info('Robot paused by external request')
         
     def resume(self) -> None: 
         if self._state != StateMachine.PAUSED:
