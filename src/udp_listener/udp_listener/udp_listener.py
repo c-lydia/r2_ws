@@ -1,7 +1,11 @@
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
+<<<<<<< HEAD
 from custom_messages.msg import TargetSetter, UpdateWaypoint, Waypoint, Return
+=======
+from custom_messages.msg import TargetSetter, UpdateWaypoint, WaypointBatch, Return, Waypoint
+>>>>>>> origin/v0.3
 import socket
 import struct
 import time
@@ -10,7 +14,11 @@ class UdpListener(Node):
     def __init__(self):
         super().__init__('udp_listener')
 
+<<<<<<< HEAD
         self.wp_publisher = self.create_publisher(Waypoint, '/waypoint', 10)
+=======
+        self.wp_publisher = self.create_publisher(WaypointBatch, '/waypoint', 10)
+>>>>>>> origin/v0.3
         self.target_setter_publisher = self.create_publisher(TargetSetter, '/target_info', 10)
         self.update_wp_publisher  = self.create_publisher(UpdateWaypoint, '/update_wp', 10)
         self.return_publisher = self.create_publisher(Return, '/return_flag', 10)
@@ -90,6 +98,10 @@ class UdpListener(Node):
             now = time.monotonic()
 
         interval = now - self.last_packet_time
+<<<<<<< HEAD
+=======
+        
+>>>>>>> origin/v0.3
         if interval > 780.0 and interval <= 900.0:
             self.get_logger().warn(f'No packet for {interval:.1f}s, connection unhealthy')
         elif interval > 900.0:
@@ -116,16 +128,27 @@ class UdpListener(Node):
             
             self.return_publisher.publish(return_msg)
             self.get_logger().info(f'Return = {return_flag}')
+<<<<<<< HEAD
             
         elif data_len == 25:
             edit_flag = bool(data[0])
             index, version = struct.unpack_from('<II', data, 1)  # uint32 little endian
             x, y = struct.unpack_from('<dd', data, 9)           # float64 little endian
+=======
+            return True 
+        elif data_len == 25:
+            edit_flag = bool(data[0])
+            index, version = struct.unpack_from('<II', data, 1)  
+            x, y = struct.unpack_from('<dd', data, 9)          
+>>>>>>> origin/v0.3
 
             update_msg = UpdateWaypoint()
             update_msg.edited = edit_flag
             update_msg.index = index
+<<<<<<< HEAD
             update_msg.version = version
+=======
+>>>>>>> origin/v0.3
             update_msg.x = x
             update_msg.y = y
 
@@ -146,15 +169,27 @@ class UdpListener(Node):
                 return False
 
             expected_len = 12 + count * 16
+<<<<<<< HEAD
+=======
+            
+>>>>>>> origin/v0.3
             if len(data) != expected_len:
                 self.get_logger().warn(f'Packet size mismatch: expected {expected_len}, got {len(data)}')
                 return False
 
+<<<<<<< HEAD
+=======
+            batch_wp_msg = WaypointBatch()
+            batch_wp_msg.version = plan_id
+            batch_wp_msg.waypoint = []
+            
+>>>>>>> origin/v0.3
             for i in range(count):
                 x, y = struct.unpack_from('<dd', data, offset)
                 offset += 16
 
                 wp_msg = Waypoint()
+<<<<<<< HEAD
                 wp_msg.index = count
                 wp_msg.version = plan_id
                 wp_msg.x = x
@@ -162,6 +197,17 @@ class UdpListener(Node):
 
                 self.wp_publisher.publish(wp_msg)
                 self.get_logger().info(f'WP[{i}] ({x}, {y})')
+=======
+                wp_msg.index = i
+                wp_msg.x = x
+                wp_msg.y = y
+                wp_msg.version = plan_id
+
+                batch_wp_msg.waypoint.append(wp_msg)
+            
+            self.wp_publisher.publish(batch_wp_msg)
+            self.get_logger().info(f'Publishing: batch with {count} waypoints, version {plan_id}, waypoints: {batch_wp_msg}')
+>>>>>>> origin/v0.3
 
             return True
         else:
