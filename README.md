@@ -1,102 +1,111 @@
-# Target_Setter_v1
+# Target Setter — v1.0
 
-![License](https://img.shields.io/badge/license-MIT-blue)
-![ROS2](https://img.shields.io/badge/ROS2-humble-22314E?logo=ros&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.10-3776ab?logo=python&logoColor=white)
-![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
-![Docs](https://img.shields.io/badge/docs-RST-8CA1AF?logo=readthedocs&logoColor=white)
-![venv](https://img.shields.io/badge/venv-enabled-4B8BBE?logo=python&logoColor=white)
-![Stars](https://img.shields.io/github/stars/c-lydia/r2_ws?style=flat)
-![Forks](https://img.shields.io/github/forks/c-lydia/r2_ws?style=flat)
-![Watchers](https://img.shields.io/github/watchers/c-lydia/r2_ws?style=flat)
-![Release](https://img.shields.io/github/v/release/c-lydia/r2_ws)
-![Issues](https://img.shields.io/github/issues/c-lydia/r2_ws?color=yellow)
-![Visitors](https://visitor-badge.laobi.icu/badge?page_id=c-lydia.r2_ws)
+## Overview
 
-## Packages
-
-This project has 2 packages:
-
-- Target_Setter app
-- src (src files for Robot R2 2024)
-
----
-
-## Features
-
----
-
-### Target_Setter App
-
-- Changing field based on user inputs
-- Waypoints display to control robot's position
-- Undo and Clear all the waypoints
-- Waypoints can be added up to 27 waypoints
-- Sending and receiving positions to and from robot via UDP
-- Editing position
-- Sending return signal
-- Send all waypoints at once
-
----
-
-### r2_src
-
-- Moving based on data from Target_Setter app
-- Receiving and sending odometry from app and to app
-- Auto-detecting app's IP address using `/target_info` topic
-- Robot position live editing (position)
-- Robot return function to previous waypoints
-- Lock robot only to receive data from one source and terminate connection if no data is received within 15 minutes
-- New custom messages `TargetSetter`, `Waypoint`, `UpdateWaypoint`, and `Return` for topic `target_info`, `/waypoint`, `/update_wp`, and `/return_flag` respectively
-- UDP can receive data up to 64kB
-- Sending data to app at 10Hz
-- The port of the UDP socket for binding with the app is set to `5050`
-- Automatically filp the local frame if the frame transformation is reversed
+A semi-autonomous waypoint navigation system. Waypoints are placed on a touch-screen map (global frame) and sent to the robot over UDP at 10 Hz. The robot executes them sequentially using a P controller inside a ROS2 node, with a state machine managing navigation, pausing, and return behaviour.
 
 ---
 
 ## Configuration
 
-- copy `r2_src` into your workspace, rename it to `src`
-- Then build the packages
+### Requirements
+
+- ROS2 (Humble or later)
+- `custom_messages` package built in the same workspace
+- An Android phone with Wifi
+
+### Installation
+
+To install the app:
+
+1. Open the provided `.apk` file
+2. Install the app (don't scan)
+
+To configure ROS2 package:
+
+1. Copy the provided `src` directory inside `r2_src` into your workspace
+2. Build the package:
 
 ``` bash
-colcon build
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-- Install the provided `.apk` file on your android phone (if it asks you to scan, don't scan, just proceed to installation directly)
+### Running
 
----
+There is no launch file. Start each node manually in separate terminals.
 
-## How to operate
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 run <pkg> <node_name>
+```
 
-- after building the workspace, source your workspace, then run all the packages
-- on the app, input the IP address of the robot, and set the port to 5050
-- click on the gamefield to set waypoint
-- click Change button if you wish to change the field dimension
-- click Send button if you wish to send all the waypoints
-- if the robot terminates the connection, you have to bind again
+> Run all the nodes inside different terminal. The port is set to `5050` by default.
 
----
+## How to Operate
 
-## how to use the app
+1. Add the field dimension first before adding waypoints.
+2. Bind the phone to the robot before sending.
+3. **Send waypoints** — tap the map to place waypoints, then press **Send**. The robot navigates to each one in order.
+4. **Edit a waypoint** — drag a waypoint on the map. Updates are applied immediately, even while the robot is moving.
+5. **Delete / undo** — use the app controls before the waypoints are executed.
+6. **Return** — press **Return** on the app. The robot immediately heads back to the last visited waypoint.
 
-![alt text](img/photo_2025-12-06_17-05-38.jpg)
+## Features
 
-- To add waypoint click on the field
-- Change button is for changing field dimension
-- Undo button deletes the last waypoint
-- Clear button deletes all waypoint
-- Edit button lets you edit the position of the waypoint with the ID you select
-- Send button sends all the data of every waypoints you added
-- Return button signals the robot to return to previous waypoint
-- Bind button is UDP bridge, allowing robot to bind with app
-  
----
+- Add waypoints by touch on a global-frame map
+- Edit waypoints in real time (mid-navigation)
+- Delete / undo waypoints from the app
+- Send all waypoints at once
+- Return to previous waypoint
+- P controller with speed saturation and velocity ramp-up
+- Stateful control (IDLE / NAVIGATE / RETURN / PAUSED)
 
-## Limitations
+## Toubleshooting
 
-- The odometry (`current_odometry`) is off by a few centimeters, and the orientation is also off by a few radians
-- The app can't handle too high frequency, it will lag
-- There's no launch file for this version
-- No emergency stop is set on the app
+**Robot does not move after sending waypoints**
+
+- Check that the UDP listener is running and receiving packets.
+- Verify `/waypoint` is being published: `ros2 topic echo /waypoint`
+- Check that `/current_odom` is being published by your driver node.
+
+**Robot moves in the wrong direction**
+
+- Confirm the odometry frame matches the app's global frame. A mismatch here will cause the robot to navigate to the wrong position.
+- Check that the robot's initial pose at startup is (0, 0) or matches the app's origin.
+
+**Yaw is way off**
+
+- Known issue. Check that the yaw from `/current_odom` is consistent with the direction the robot is physically facing.
+- Verify the quaternion-to-yaw conversion matches your odometry convention.
+
+**Robot overshoots or oscillates**
+
+- Reduce `K_P` in `robot_control.py`.
+- Increase `A_MAX` gradually if the ramp-up is too slow and causing overshoot.
+
+**Robot stops short of the waypoint**
+
+- The P controller has inherent steady-state error. Reduce `ERROR_THRESHOLD` or `ARRIVAL_THRESHOLD` to tighten accuracy.
+
+**Waypoint edit applies to the wrong waypoint**
+
+- Known app-side bug. Restart the app and re-send waypoints as a workaround.
+
+**Robot gets stuck in PAUSED and never resumes**
+
+- Check that `_pause_robot` is not being set externally without a corresponding `resume()` call.
+- Verify the odometry topic is still publishing — the timer callback depends on fresh pose data.
+
+**`custom_messages` not found at build**
+
+- Make sure the `custom_messages` package is inside `~/ros2_ws/src` and run `colcon build` again before sourcing.
+
+## Known Issues
+
+- **Yaw error** — heading is off
+- **Residual position error** — P controller leaves steady-state error near the target.
+- **Waypoint edit bug** — edits oapply to the wrong version of planning due to mistake on the app.
+- **No emergency stop** — not yet implemented on the app.
+- **No launch file** — nodes must be started manually.

@@ -31,6 +31,10 @@ set(msg_files
   "msg/UpdateWaypoint.msg"
   "msg/Waypoint.msg"
   "msg/Return.msg"
+<<<<<<< HEAD
+=======
+  "msg/WaypointBatch.msg"
+>>>>>>> origin/v0.3
 )
 
 # Generate interfaces
