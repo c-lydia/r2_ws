@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 .vscode/
 log/
 .~lock.*
@@ -29,7 +28,6 @@ docs/build/html/searchindex.js
 docs/build/html/.buildinfo.bak
 docs/build/html/.buildinfo
 docs/build/.doctrees/
-=======
 # ROS2/colcon build artifacts
 /build/
 /install/
@@ -42,4 +40,5 @@ src/.vscode/
 *.VC.db
 *.opendb
 *.db-journal
->>>>>>> origin/v0.3
+
+src_old/
