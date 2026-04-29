@@ -1,5 +1,17 @@
 # Target Setter — v1.0
 
+![ROS2](https://img.shields.io/badge/ROS2-Humble-blue?logo=ros)
+![Python](https://img.shields.io/badge/Python-3.10+-yellow?logo=python)
+![C++](https://img.shields.io/badge/C++-17-blue?logo=c%2B%2B)
+![Android](https://img.shields.io/badge/Android-App-green?logo=android)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-red?logo=opencv)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![Navigation](https://img.shields.io/badge/Navigation-Waypoint%20Based-blueviolet)
+![Control](https://img.shields.io/badge/Control-P%20Controller-orange)
+![Communication](https://img.shields.io/badge/Protocol-UDP-lightblue)
+![Architecture](https://img.shields.io/badge/System-Robotics%20Stack-critical)
+
 ## Overview
 
 A semi-autonomous waypoint navigation system. Waypoints are placed on a touch-screen map (global frame) and sent to the robot over UDP at 10 Hz. The robot executes them sequentially using a P controller inside a ROS2 node, with a state machine managing navigation, pausing, and return behaviour.
