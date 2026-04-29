@@ -2,13 +2,9 @@ import rclpy
 from rclpy.node import Node
 from custom_messages.msg import MotorCommand 
 from geometry_msgs.msg import Twist 
-<<<<<<< HEAD
-import math
-=======
 import math, time
 
 A_MAX = 15.0
->>>>>>> origin/v0.3
 
 class kinematicPublisher(Node): 
     def __init__(self): 
@@ -23,21 +19,15 @@ class kinematicPublisher(Node):
         self.l = 66.2 * 0.01 / 2
         self.r = 127.0 * 0.001 / 2
         
-<<<<<<< HEAD
-=======
         self.prev_time = None 
         self.prev_motor_speed = [0.0] * 4
         
->>>>>>> origin/v0.3
     def cmd_vel_callback(self, cmd_vel_msg):
         self.linear_vel_x = cmd_vel_msg.linear.x
         self.linear_vel_y = cmd_vel_msg.linear.y
         self.angular_vel_z = cmd_vel_msg.angular.z 
         
         motor_speed = self.inverse_kinematic(self.linear_vel_x, self.linear_vel_y, self.angular_vel_z)
-<<<<<<< HEAD
-        motor_polarity = [-1, -1, -1, -1]
-=======
         
         current_time = time.perf_counter()
         
@@ -48,17 +38,11 @@ class kinematicPublisher(Node):
         
         for i in range(4):
             motor_speed[i] = self.rate_limit(motor_speed[i], A_MAX, self.prev_motor_speed[i], dt)
->>>>>>> origin/v0.3
         
         for i in range(4):
             motor_msg = MotorCommand()
             motor_msg.speedmode = True
             motor_msg.can_id = i + 1
-<<<<<<< HEAD
-            motor_msg.goal = -motor_polarity[i] * motor_speed[i]
-            self.kinematic_publisher.publish(motor_msg)
-            self.get_logger().info(f'Publishing: {motor_msg}')
-=======
             motor_msg.goal = motor_speed[i]
             self.kinematic_publisher.publish(motor_msg)
             self.get_logger().info(f'Publishing: {motor_msg}')
@@ -66,20 +50,10 @@ class kinematicPublisher(Node):
             self.prev_motor_speed[i] = motor_speed[i]
             
         self.prev_time = current_time
->>>>>>> origin/v0.3
         
     def inverse_kinematic(self, vx, vy, wz):
         vel_motor = [
             ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) - ((self.l/self.r) * wz),
-<<<<<<< HEAD
-            ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) + ((self.l/self.r) * wz),
-            ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) + ((self.l/self.r) * wz),
-            ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) - ((self.l/self.r) * wz)
-        ]
-        
-        return vel_motor
-            
-=======
             ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) - ((self.l/self.r) * wz),
             ((math.sqrt(2)/(2 * self.r)) * (vx - vy)) + ((self.l/self.r) * wz),
             ((math.sqrt(2)/(2 * self.r)) * (vx + vy)) + ((self.l/self.r) * wz)
@@ -102,7 +76,6 @@ class kinematicPublisher(Node):
         
         return dv + v_prev 
         
->>>>>>> origin/v0.3
 def main():
     rclpy.init()
     kinematic_publisher = kinematicPublisher()

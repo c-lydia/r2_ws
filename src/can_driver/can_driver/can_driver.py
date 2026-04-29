@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-#!/usr/bin/env python3
-
-=======
->>>>>>> origin/v0.3
 import rclpy
 from rclpy.node import Node
 import can
@@ -12,13 +7,10 @@ import subprocess
 import array
 import signal
 import time
-<<<<<<< HEAD
-=======
 import threading
 
 ALPHA = 0.3
 DEADZONE = 0.01
->>>>>>> origin/v0.3
 
 def run_subprocess(cmd):
     """Executes a command in the subprocess and returns the result."""
@@ -32,11 +24,6 @@ class CanDriver(Node, can.Listener):
         self.setup_can_interface()
         self.init_publisher()
         self.init_subscriber()
-<<<<<<< HEAD
-        self.shutdown_requested = False
-        self.prev_position = None
-        self.prev_time = None
-=======
         
         self.lock = threading.Lock()
         
@@ -44,7 +31,6 @@ class CanDriver(Node, can.Listener):
         self.prev_position = [0.0] * 4
         self.prev_speed = [0.0] * 4
         self.prev_time = [time.perf_counter()] * 4
->>>>>>> origin/v0.3
         
         # Set up signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -195,30 +181,6 @@ class CanDriver(Node, can.Listener):
         
     def on_message_received(self, msg):
         if 100 <= msg.arbitration_id < 200:
-<<<<<<< HEAD
-            motor_index = msg.arbitration_id - 102
-
-            if not hasattr(self, 'prev_position'):
-                self.prev_position = [0.0] * 4
-                self.prev_time = [self.get_clock().now()] * 4
-
-            current_time = self.get_clock().now()
-            dt = (current_time - self.prev_time[motor_index]).nanoseconds * 1e-9
-            current_position = struct.unpack_from('<f', msg.data, 0)[0]
-
-            if dt <= 0:
-                current_speed = 0.0
-            else:
-                current_speed = (current_position - self.prev_position[motor_index]) / dt
-
-            self.prev_position[motor_index] = current_position
-            self.prev_time[motor_index] = current_time
-
-            feedback_msg = EncoderFeedback()
-            feedback_msg.can_id = msg.arbitration_id
-            feedback_msg.position = current_position
-            feedback_msg.speed = current_speed
-=======
             feedback_msg = EncoderFeedback()
             feedback_msg.can_id = msg.arbitration_id
 
@@ -232,7 +194,6 @@ class CanDriver(Node, can.Listener):
                 feedback_msg.position = raw_position * motor_polarity[idx]
                 feedback_msg.speed = raw_speed * motor_polarity[idx]
             
->>>>>>> origin/v0.3
             self.encoder_publisher.publish(feedback_msg)
 
         if 500 <= msg.arbitration_id <= 510:
@@ -286,25 +247,15 @@ class CanDriver(Node, can.Listener):
         self.destroy_node()
         self.get_logger().info("Node destroyed. Shutdown complete.")
 
-<<<<<<< HEAD
-def main(args=None):
-    rclpy.init(args=args)
-    can_driver_node = CanDriver()
-=======
 def main():
     rclpy.init()
     can_driver_node = CanDriver()
     
->>>>>>> origin/v0.3
     try:
         while rclpy.ok() and not can_driver_node.shutdown_requested:
             rclpy.spin_once(can_driver_node, timeout_sec=0.1)
     except KeyboardInterrupt:
-<<<<<<< HEAD
-        can_driver_node.shutdown()
-=======
         can_driver_node.destroy_node()
->>>>>>> origin/v0.3
     finally:
         rclpy.shutdown()
 
