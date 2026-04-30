@@ -42,3 +42,5 @@ src/.vscode/
 *.db-journal
 
 src_old/
+
+.cv_env/
