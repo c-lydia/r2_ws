@@ -1,0 +1,6 @@
+numpy==1.23.5
+matplotlib
+scipy
+simple-pid
+supervision==0.25.1
+pillow

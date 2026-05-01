@@ -1,0 +1,4 @@
+# onnxruntime-gpu installed separately via NGC index (see Dockerfile)
+# torch — already in base image, do not reinstall
+# opencv — already CUDA-built on Jetson, do not reinstall
+ultralytics

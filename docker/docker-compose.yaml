@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  perception:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+    volumes:
+      - /dev/shm:/dev/shm/
+      - ../models:/workspace/models
+      - ../src/perception/perception:/workspace/perception
+    environment:
+      - MODEL_PATH=/workspace/models/yolov8n.onnx
+      - SHM_FRAME=frame
+      - SHM_DETECTION=detections
+      - PYTHONBUFFERED=1
+    restart: unless-stopped 
