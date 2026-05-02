@@ -4,6 +4,8 @@
 
 ![alt text](image.png)
 
+Last updated: 2026-05-03 (v1.1)
+
 ## Packages and Nodes
 
 ``` bash
@@ -279,6 +281,14 @@ bool solenoid3_value
 bool solenoid4_value
 bool solenoid5_value
 bool solenoid6_value
+```
+
+##### `robot_interface/msg/ActiveWaypoint`
+
+``` bash
+float64 x
+float64 y 
+float64 yaw
 ```
 
 #### `sensor_msgs`

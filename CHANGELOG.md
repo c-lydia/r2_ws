@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.1] - 2026-05-03
+
+### Added
+
+- System architecture documentation updated ([docs/system_architecture.md](docs/system_architecture.md)) for v1.1.
+- Launch file `target_setter.launch.py` to start core nodes together.
+- Shared Memory IPC for zero-copy camera → inference frame exchange.
+- Dual-backend inference: TensorRT `.engine` priority with ONNX Runtime fallback.
+- Hybrid consensus vision: AI inference verified by HSV color logic to reduce false positives.
+- `export_model.py` automation for Roboflow → ONNX export.
+
+### Changed
+
+- Optimized perception pipeline for NVIDIA RTX 3050 (CUDA/cuDNN pinned versions).
+- README and installation instructions updated for v1.1.
+- Added Jetson-specific setup notes and optional requirements file.
+
+### Fixed
+
+- Minor refactors to reduce inference latency and stabilize topic publishing.
+- Documentation inconsistencies from v1.0 corrected.
+
+---
+
 ## [v1.0] - 2026-04-30
 
 ### Added
