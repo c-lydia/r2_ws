@@ -1,0 +1,11 @@
+std_msgs/Header header
+float32 x1
+float32 y1
+float32 x2
+float32 y2
+float32 cx
+float32 cy
+float32 confidence
+string class_name
+float32 distance
+bool valid

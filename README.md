@@ -32,13 +32,20 @@ This version (v1.1) is optimized for the MSI Cyborg 15 (GeForce RTX 3050) and in
 ### Requirements
 
 - ROS2 (Humble or later)
-- GeForce RTX 3050 (for hardware-accelerated perception)
-- MSI Cyborg 15 Integrated Webcam / RealSense D435 / generic USB camera
+- GeForce RTX 3050 (for hardware-accelerated perception  performance test)
+- MSI Cyborg 15 Integrated Webcam / RealSense D435 / generic USB camera (performance test)
 - `robot_interface` package built in the same workspace
 - An Android phone with Wifi
 - **Camera driver**: `usb_cam` ROS2 package (installed via `apt install ros-humble-usb-cam` or from source)
 - CUDA Toolkit 12.* and cuDNN 9.* for GPU acceleration
 - Optional: TensorRT 8.* for optimized inference (automatic fallback to ONNX Runtime)
+
+### Jetson AGX Xavier Setup
+
+- JetPack 5.1.2 (L4T R35.4.1)
+- ROS2 Foxy
+- Python 3.8
+- CUDA 11.4 (managed by JetPack)
 
 ### Installation
 

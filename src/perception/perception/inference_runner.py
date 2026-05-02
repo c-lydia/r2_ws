@@ -8,7 +8,22 @@ Priority:
 
 import os
 import time
+from typing import TYPE_CHECKING
 import numpy as np
+
+if TYPE_CHECKING:
+    import tensorrt as trt
+else:
+    trt = None
+
+try:
+    import tensorrt as trt
+except ImportError:
+    trt = None
+
+import pycuda.driver as cuda
+import pycuda.autoinit
+
 
 from shm_bridge import SHMFrameReader, SHMDetWriter
 
@@ -38,10 +53,6 @@ class ONNXBackend:
 
 class TensorRTBackend:
     def __init__(self, path):
-        import tensorrt as trt
-        import pycuda.driver as cuda
-        import pycuda.autoinit
-
         self.trt = trt
         self.cuda = cuda
 

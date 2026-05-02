@@ -39,14 +39,13 @@ def _ensure_file(path: str, size: int):
     fd.flush()
     return fd
 
-
 def _open_existing(path: str):
     """Open existing shared memory file."""
     if not os.path.exists(path):
         raise FileNotFoundError(f"Shared memory file not found: {path}")
     return open(path, 'rb+')
 
-class SHMFrameWriter:
+class ShmFrameWriter:
     """
     Host side:
     Writes camera frames into shared memory.
@@ -75,7 +74,7 @@ class SHMFrameWriter:
 
         self.mm.flush()
 
-class SHMFrameReader:
+class ShmFrameReader:
     """
     Docker side:
     Reads frames from shared memory.
@@ -113,7 +112,7 @@ class SHMFrameReader:
 
         return frame_id, img
 
-class SHMDetWriter:
+class ShmDetWriter:
     """
     Docker side:
     Writes detections to shared memory.
@@ -149,7 +148,7 @@ class SHMDetWriter:
 
         self.mm.flush()
 
-class SHMDetReader:
+class ShmDetReader:
     """
     Host side:
     Reads detections from shared memory.
@@ -182,16 +181,16 @@ if __name__ == "__main__":
 
     frame = np.zeros((FRAME_H, FRAME_W, FRAME_C), dtype=np.uint8)
 
-    writer = SHMFrameWriter()
-    reader = SHMFrameReader()
+    writer = ShmFrameWriter()
+    reader = ShmFrameReader()
 
     writer.write(1, frame)
     fid, img = reader.read()
 
     print("Frame test:", fid, img.shape if img is not None else None)
 
-    det_writer = SHMDetWriter()
-    det_reader = SHMDetReader()
+    det_writer = ShmDetWriter()
+    det_reader = ShmDetReader()
 
     test_dets = [
         (10, 20, 100, 200, 0.9, 1.0, 2.5),

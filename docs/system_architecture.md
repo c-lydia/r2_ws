@@ -1,0 +1,420 @@
+# System Architecture - Target_Setter_v1.1
+
+## System Diagram
+
+![alt text](image.png)
+
+## Packages and Nodes
+
+``` bash
+.
+├── communication
+│   ├── communication
+│   │   ├── __init__.py
+│   │   ├── udp_listener.py
+│   │   └── udp_sender.py
+│   ├── LICENSE
+│   ├── package.xml
+│   ├── resource
+│   │   └── communication
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── control
+│   ├── control
+│   │   ├── __init__.py
+│   │   └── robot_control.py
+│   ├── LICENSE
+│   ├── package.xml
+│   ├── resource
+│   │   └── control
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── hardware_interface
+│   ├── hardware_interface
+│   │   ├── can_driver.py
+│   │   ├── hfi_a9.py
+│   │   ├── __init__.py
+│   │   ├── inverse_kinematic.py
+│   │   └── odometry.py
+│   ├── LICENSE
+│   ├── package.xml
+│   ├── resource
+│   │   └── hardware_interface
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── manipulation
+│   ├── LICENSE
+│   ├── manipulation
+│   │   ├── gripper_control.py
+│   │   └── __init__.py
+│   ├── package.xml
+│   ├── resource
+│   │   └── manipulation
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── navigation
+│   ├── LICENSE
+│   ├── navigation
+│   │   ├── __init__.py
+│   │   └── mission_planner.py
+│   ├── package.xml
+│   ├── resource
+│   │   └── navigation
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── perception
+│   ├── LICENSE
+│   ├── package.xml
+│   ├── perception
+│   │   ├── distance_estimation.py
+│   │   ├── inference_runner.py
+│   │   ├── __init__.py
+│   │   ├── object_detection.py
+│   │   └── shm_bridge.py
+│   ├── resource
+│   │   └── perception
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── robot_interface
+│   ├── CMakeLists.txt
+│   ├── include
+│   │   └── robot_interface
+│   ├── LICENSE
+│   ├── msg
+│   │   ├── DetectionArray.msg
+│   │   └── Detection.msg
+│   ├── package.xml
+│   └── src
+└── target_setter
+    ├── launch
+    │   └── target_setter.launch.py
+    ├── LICENSE
+    ├── package.xml
+    ├── resource
+    │   └── target_setter
+    ├── setup.cfg
+    ├── setup.py
+    ├── target_setter
+    │   └── __init__.py
+    └── test
+        ├── test_copyright.py
+        ├── test_flake8.py
+        └── test_pep257.py
+
+34 directories, 82 files
+```
+
+## UDP frames Definitions
+
+All UDP communication runs between the Android app and the robot over Wi-Fi on port `5050`.
+
+### App → Robot (incoming)
+
+| Frame | Topic published | Description |
+|-------|----------------|-------------|
+| `WAYPOINT_BATCH` | `/waypoint` | Ordered list of waypoints to execute |
+| `UPDATE_WAYPOINT` | `/update_wp` | Edit a waypoint by index and version |
+| `RETURN` | `/return_flag` | Command robot to return to last visited waypoint |
+| `TARGET_INFO` | `/target_info` | Target metadata (reserved for future use) |
+| `GRIPPER_CMD` | `/gripper_cmd` | Open or close gripper |
+
+### Robot → App (outgoing)
+
+| Frame | Topic | Description |
+|-------|-------|-------------|
+| `ODOM` | `/current_odom` | Current robot position (x, y, yaw) at 10Hz |
+
+## Interfaces Definitions
+
+### ROS2 Topics
+
+| Topic | Type | Publisher | Subscriber | Description |
+|-------|------|-----------|------------|-------------|
+| `/camera/color/image_raw` | `sensor_msgs/Image` | realsense2_camera | object_detection | RGB frame |
+| `/camera/depth/image_rect_raw` | `sensor_msgs/Image` | realsense2_camera | distance_estimation | Aligned depth frame (uint16, mm) |
+| `/detections` | `robot_interface/DetectionArray` | object_detection | distance_estimation | 2D bounding boxes, no distance |
+| `/detections_3d` | `robot_interface/DetectionArray` | distance_estimation | robot_control, gripper_control | Detections with distance filled |
+| `/imu/data_raw` | `sensor_msgs/Imu` | hfi_a9 | odometry | Raw IMU orientation + angular velocity |
+| `/encoder_feedback` | `robot_interface/EncoderFeedback` | can_driver | odometry | Wheel encoder speed + position |
+| `/current_odom` | `nav_msgs/Odometry` | odometry | mission_planner, udp_sender | Robot pose (x, y, yaw) |
+| `/waypoint` | `robot_interface/WaypointBatch` | udp_listener | mission_planner | Ordered waypoint list |
+| `/update_wp` | `robot_interface/UpdateWaypoint` | udp_listener | mission_planner | In-motion waypoint edit |
+| `/return_flag` | `robot_interface/Return` | udp_listener | mission_planner | Return to last waypoint |
+| `/target_info` | `std_msgs/String` | udp_listener | mission_planner | Target metadata |
+| `/gripper_cmd` | `robot_interface/GripperCmd` | udp_listener | gripper_control | Open/close trigger |
+| `/active_wp` | `robot_interface/Waypoint` | mission_planner | robot_control | Current active waypoint |
+| `/cmd_vel` | `geometry_msgs/Twist` | robot_control, gripper_control | inverse_kinematic | Velocity command (vx, vy, wz) |
+| `/motor_cmd` | `robot_interface/MotorCmd` | inverse_kinematic | can_driver | Per-wheel speed commands |
+| `/solenoid_cmd` | `robot_interface/SolenoidCmd` | gripper_control | can_driver | Gripper open/close signal |
+
+### Messages
+
+#### `robot_interface`
+
+##### `robot_interface/msg/Detection.msg`
+
+``` bash
+std_msgs/Header header
+float32 x1
+float32 y1
+float32 x2
+float32 y2
+float32 cx
+float32 cy
+float32 confidence
+string class_name
+float32 distance
+bool valid
+```
+
+##### `robot_interface/msg/DetectionArray.msg`
+
+``` bash
+std_msgs/Header header
+Detection[] detections
+```
+
+##### `robot_interface/msg/GripperCmd.msg`
+
+``` bash
+bool open    # true = open, false = close
+```
+
+##### `robot_interface/msg/Waypoint`
+
+``` bash
+uint32 index
+uint32 version
+float64 x
+float64 y
+```
+
+##### `robot_interface/msg/WaypointBatch`
+
+``` bash
+uint32 version
+Waypoint[] waypoint
+```
+
+##### `robot_interface/msg/UpdateWaypoint`
+
+``` bash
+bool edited
+uint32 index
+uint32 version
+float64 x
+float64 y
+```
+
+##### `robot_interface/msg/Return`
+
+``` bash
+bool flag
+```
+
+##### `robot_interface/msg/TargetSetter`
+
+``` bash
+string ip 
+uint16 port
+```
+
+##### `robot_interface/msg/EncoderFeedback`
+
+``` bash
+uint16 can_id
+float32 speed
+float32 position
+```
+
+##### `robot_interface/msg/MotorCommand`
+
+``` bash
+uint16 can_id
+float32 goal
+bool positionmode
+bool speedmode
+bool voltagemode
+bool stop
+bool reset
+```
+
+##### `robot_interface/msg/DigitalAndSolenoidCommand`
+
+``` bash
+uint16 can_id
+
+bool digital1_value
+bool digital2_value
+bool digital3_value
+bool digital4_value
+
+bool solenoid1_value
+bool solenoid2_value
+bool solenoid3_value
+bool solenoid4_value
+bool solenoid5_value
+bool solenoid6_value
+```
+
+#### `sensor_msgs`
+
+##### `sensor_msgs/msg/Image`
+
+``` bash
+std_msgs/Header header
+uint32 height
+uint32 width
+string encoding
+uint8 is_bigendian
+uint32 step
+uint8[] data
+```
+
+##### `sensor_msgs/msg/Imu`
+
+``` bash
+std_msgs/Header header
+geometry_msgs/Quaternion orientation
+float64[9] orientation_covariance
+geometry_msgs/Vector3 angular_velocity
+float64[9] angular_velocity_covariance
+geometry_msgs/Vector3 linear_acceleration
+float64[9] linear_acceleration_covariance
+```
+
+##### `sensor_msgs/msg/MagneticField`
+
+``` bash
+std_msgs/Header header
+geometry_msgs/Vector3 magnetic_field
+float64[9] magnetic_field_covariance
+```
+
+#### `nav_msgs`
+
+##### `nav_msgs/msg/Odometry`
+
+``` bash
+std_msgs/Header header
+string child_frame_id
+geometry_msgs/PoseWithCovariance pose
+geometry_msgs/TwistWithCovariance twist
+```
+
+#### `geometry_msgs`
+
+##### `geometry_msgs/msg/Twist`
+
+``` bash
+geometry_msgs/Vector3 linear
+geometry_msgs/Vector3 angular
+```
+
+##### `geometry_msgs/msg/Quaternion`
+
+``` bash
+float64 x
+float64 y
+float64 z
+float64 w
+```
+
+##### `geometry_msgs/msg/Vector3Stamped`
+
+``` bash
+std_msgs/Header header
+geometry_msgs/Vector3 vector
+```
+
+### Services
+
+#### `std_srvs`
+
+##### `std_srvs/srv/Trigger`
+
+``` bash
+boolean success
+string message
+```
+
+## State Machine Definitions
+
+### robot_control.py
+
+``` bash
+IDLE
+  → receives waypoints              → NAVIGATE
+  → return requested, history exists → RETURN
+
+NAVIGATE
+  → waypoint reached                → PAUSED
+  → ball within HANDOFF_THRESHOLD   → stops publishing /cmd_vel
+                                       (gripper_control takes over)
+
+PAUSED
+  → pause duration elapsed          → IDLE
+  → external pause (pause())        → stays PAUSED until resume()
+
+RETURN
+  → return waypoint reached         → PAUSED
+```
+
+### gripper_control.py
+
+``` bash
+IDLE
+  → /gripper_cmd open received      → OPEN_GRIPPER
+
+OPEN_GRIPPER
+  → ball detected in /detections_3d
+    AND distance < HANDOFF_THRESHOLD → CORRECT_POSITION
+  → no ball detected                → IDLE (open only, drop off mode)
+
+CORRECT_POSITION
+  → visual servo: error_x, error_y, distance
+  → aligned AND distance < GRAB_DISTANCE → CLOSE_GRIPPER
+  → ball lost                       → CLOSE_GRIPPER
+
+CLOSE_GRIPPER
+  → solenoid close command sent     → IDLE
+```
+
+### mission_planner.py
+
+``` bash
+IDLE
+  → /waypoint received              → dispatches to robot_control
+
+PLANNING
+  → manages waypoint queue
+  → handles /update_wp edits
+  → handles /return_flag
+  → publishes /active_wp to robot_control
+```
+
+## Theory and Constraints
