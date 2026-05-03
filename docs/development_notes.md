@@ -1,7 +1,5 @@
 # Target Setter — v1.1
 
-Release notes: see the [CHANGELOG.md](CHANGELOG.md) for full details. Detailed system architecture is in [docs/system_architecture.md](system_architecture.md).
-
 ![ROS2](https://img.shields.io/badge/ROS2-Humble-blue?logo=ros)
 ![Python](https://img.shields.io/badge/Python-3.10+-yellow?logo=python)
 ![C++](https://img.shields.io/badge/C++-17-blue?logo=c%2B%2B)
