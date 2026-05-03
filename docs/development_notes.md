@@ -20,7 +20,7 @@
 
 A semi-autonomous waypoint navigation system. Waypoints are placed on a touch-screen map (global frame) and sent to the robot over UDP at 10 Hz. The robot executes them sequentially using a P controller inside a ROS2 node, with a state machine managing navigation, pausing, and return behaviour.
 
-This version (v1.1) is optimized for the MSI Cyborg 15 (GeForce RTX 3050) and introduces:
+This version (v2.0) is optimized for the MSI Cyborg 15 (GeForce RTX 3050) and introduces:
 
 - **Shared Memory IPC**: Zero-copy frame exchange between ROS2 and GPU inference engine
 - **Dual-backend Inference**: Priority to TensorRT `.engine` files with ONNX Runtime fallback

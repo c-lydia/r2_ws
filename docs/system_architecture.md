@@ -130,25 +130,36 @@ Last updated: 2026-05-03 (v1.1)
 34 directories, 82 files
 ```
 
-## UDP frames Definitions
+## UDP Communication
 
 All UDP communication runs between the Android app and the robot over Wi-Fi on port `5050`.
 
-### App → Robot (incoming)
+Protocol documentation:
 
-| Frame | Topic published | Description |
-|-------|----------------|-------------|
-| `WAYPOINT_BATCH` | `/waypoint` | Ordered list of waypoints to execute |
-| `UPDATE_WAYPOINT` | `/update_wp` | Edit a waypoint by index and version |
-| `RETURN` | `/return_flag` | Command robot to return to last visited waypoint |
-| `TARGET_INFO` | `/target_info` | Target metadata (reserved for future use) |
-| `GRIPPER_CMD` | `/gripper_cmd` | Open or close gripper |
+- **[ts_link_v2.0](ts_link_v2.0.md)** — current wire format (v2)
+- **[ts_link_v1.0](ts_link_v1.0.md)** — legacy format (v1.0, superseded)
 
-### Robot → App (outgoing)
+### App → Robot
 
-| Frame | Topic | Description |
-|-------|-------|-------------|
-| `ODOM` | `/current_odom` | Current robot position (x, y, yaw) at 10Hz |
+| Packet          | ROS topic      | Description                        |
+|-----------------|----------------|------------------------------------|
+| HELLO           | —              | Session handshake                  |
+| WAYPOINT_BATCH  | `/waypoint`    | Ordered list of waypoints          |
+| UPDATE_WAYPOINT | `/update_wp`   | Edit a waypoint by index           |
+| RETURN          | `/return_flag` | Return to last visited waypoint    |
+| ESTOP           | `/estop`       | Emergency stop                     |
+| HEARTBEAT       | —              | Keepalive                          |
+| GOODBYE         | —              | Clean session termination          |
+
+### Robot → App
+
+| Packet    | ROS topic        | Description                        |
+|-----------|------------------|------------------------------------|
+| HELLO     | —                | Session ID + status response       |
+| ODOMETRY  | `/current_odom`  | Position at ~10Hz                  |
+| STATUS    | —                | State machine + active waypoint    |
+| HEARTBEAT | —                | Keepalive response                 |
+| GOODBYE   | —                | Session termination acknowledgement|
 
 ## Interfaces Definitions
 
