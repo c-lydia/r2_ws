@@ -32,27 +32,30 @@ It evolved from a single navigation stack into a layered robotics platform with 
 
 > v1.0 is stable and frozen (no further feature development)
 
-### v2.0 — Next-Generation Platform (Active Development)
+### v2.0 — Current Platform
 
-- **Breaking change: UDP protocol v2**
+- **TS-Link protocol v2.0**
+- Android app v2.0
+- ROS2 package set v2.0
 - Modular ROS2 architecture redesign
 - Added perception pipeline (CV system via Docker runtime)
 - Added manipulation subsystem
 - Expanded Android UI modules
+- Launch file and installation updates
 - Multi-layer system design:
   - Core navigation layer
   - Perception layer
   - Manipulation layer
   - Communication layer
 
-> v2.0 is the active development line of TS-ROS2
+> v2.0 is the current TS-ROS2 release line
 
 ## Compatibility
 
-| Feature | v1 App | v2 Stack |
+| Feature | v1 App | v2 App |
 |--------|--------|----------|
-| UDP v1 protocol | ✔ | ❌ |
-| UDP v2 protocol | ❌ | ✔ |
+| TS-Link v1.0 protocol | ✔ | ❌ |
+| TS-Link v2.0 protocol | ❌ | ✔ |
 | Navigation system | ✔ | ✔ |
 | CV pipeline | ❌ | ✔ |
 | Manipulation | ❌ | ✔ |
@@ -95,7 +98,7 @@ TS-ROS2 is structured as a layered robotics system:
 - Fixed schema
 - Android app compatibility
 
-#### v2 (Current)
+#### TS-Link v2.0 (Current)
 
 - Structured frame system
 - Extended metadata support
@@ -143,13 +146,13 @@ Each module is independently testable and replaceable.
 ## Project State
 
 - v1.0 → legacy stable system (frozen)
-- v2.0 → active robotics platform development
+- v2.0 → current robotics platform
 
 **`custom_messages` not found at build**
 
 - Make sure the `custom_messages` package is inside `~/ros2_ws/src` and run `colcon build` again before sourcing.
 
-For technical insight, please read [CHANGELOG](CHANGELOG.md), [development_notes](docs/development_notes.md) and [system_architecture](docs/system_architecture.md)
+For technical insight, please read [CHANGELOG](CHANGELOG.md), [development_notes](docs/development_notes.md), [system_architecture](docs/system_architecture.md), and [TS-Link protocol](docs/ts_link_protocol/ts_link_v2.0.md)
 
 ## Known Issues
 

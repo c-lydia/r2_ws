@@ -5,13 +5,24 @@ import socket
 import struct
 import time
 
-MAGIC_WAYPOINT = 0xAA
-MAGIC_EDIT = 0xBB
-MAGIC_RETURN = 0xCC
-MAGIC_GRIPPER = 0xDD
+MAGIC_HELLO = 0x01
+MAGIC_HELLO_RESPONSE = 0x02
+MAGIC_WAYPOINT_BATCH = 0x03
+MAGIC_WAYPOINT_UPDATE = 0x04
+MAGIC_RETURN = 0x05
+MAGIC_ESTOP = 0x06
+MAGIC_HEARTBEAT = 0x07
+MAGIC_GOODBYE = 0x08
+MAGIC_GRIPPER = 0x10
+MAGIC_STATUS = 0x0A
 
-TIMEOUT_WARN_S = 780.0
-TIMEOUT_DROP_S = 900.0
+PROTOCOL_VERSION = 2
+HEARTBEAT_TIMEOUT_S = 2.0
+
+STATUS_OK = 0x00
+STATUS_REJECT = 0x01
+STATUS_OVERFLOW = 0x02
+STATUS_STALE = 0x03
 
 class UdpListener(Node):
     def __init__(self):
@@ -35,180 +46,216 @@ class UdpListener(Node):
         self.receive_socket.bind(('0.0.0.0', 5050))
         self.receive_socket.settimeout(0.1)
 
-        self.current_target_ip = ''
-        self.current_target_port = None
-        self.robot_busy = False
-        self.last_packet_time = 0.0
+        self.session_id = 0
+        self.client_ip = None
+        self.client_port = None
+        self.prev_heartbeat = 0.0
 
         self.get_logger().info('UDP Listener initialized on port 5050')
 
     def udp_timer_callback(self):
-        now = time.monotonic()
-
+        current_time = time.monotonic()
+        
+        if self.session_id != 0:
+            if current_time - self.prev_heartbeat > HEARTBEAT_TIMEOUT_S:
+                self.get_logger().warn(f'Heartbeat timeout - deopping session')
+                return 
+            
         try:
             data, addr = self.receive_socket.recvfrom(4096)
         except socket.timeout:
-            if self.robot_busy:
-                self._check_connection_timeout(now)
             return
         except Exception as e:
-            self.get_logger().warn(f'Error receiving data: {e}')
+            self.get_logger().warn(f'Socket error: {e}')
             return
 
-        new_ip, new_port = addr
-
-        if self.robot_busy:
-            if new_ip != self.current_target_ip:
-                self.get_logger().warn(
-                    f'Rejected packet from {new_ip}:{new_port} — '
-                    f'control locked to {self.current_target_ip}:{self.current_target_port}'
-                )
-                self._check_connection_timeout(now)
-                return
-        else:
-            self.current_target_ip = new_ip
-            self.current_target_port = new_port
-            self.robot_busy = True
-            self.last_packet_time = now
-
-            target_msg = TargetSetter()
-            target_msg.ip = self.current_target_ip
-            target_msg.port = int(self.current_target_port)
-            self.target_publisher.publish(target_msg)
-
-            self.get_logger().info(
-                f'Locked control to {self.current_target_ip}:{self.current_target_port}'
-            )
-
-        if self.process_data(data):
-            self.last_packet_time = now
-
-    def _check_connection_timeout(self, now=None):
-        if not self.robot_busy:
+        self._handle_packet(data, addr, current_time)
+            
+    def _handle_packet(self, data: bytes, addr, now: float):
+        if len(data) < 3:
+            self.get_logger().warn('Packet too short for header')
             return
-
-        if now is None:
-            now = time.monotonic()
-
-        interval = now - self.last_packet_time
-
-        if TIMEOUT_WARN_S < interval <= TIMEOUT_DROP_S:
-            self.get_logger().warn(f'No packet for {interval:.1f}s, connection unhealthy')
-        elif interval > TIMEOUT_DROP_S:
-            self.get_logger().warn(f'No packets for {interval:.1f}s, terminating connection')
-            self.current_target_ip = ''
-            self.current_target_port = None
-            self.robot_busy = False
-            self.last_packet_time = 0.0
-
-            terminate_msg = TargetSetter()
-            terminate_msg.ip = ''
-            terminate_msg.port = 0
-            self.target_publisher.publish(terminate_msg)
-            self.get_logger().info('Connection terminated')
-
-    def process_data(self, data: bytes) -> bool:
-        if len(data) < 1:
-            self.get_logger().warn('Empty packet received')
-            return False
-
-        magic = data[0]
-
-        if magic == MAGIC_RETURN:
-            return self._parse_return(data)
-        elif magic == MAGIC_GRIPPER:
-            return self._parse_gripper(data)
-        elif magic == MAGIC_EDIT:
-            return self._parse_edit(data)
-        elif magic == MAGIC_WAYPOINT:
-            return self._parse_waypoints(data)
+        
+        ptype = data[0]
+        length = struct.unpack_from('>H', data, 1)[0]
+        payload = data[:3]
+        
+        if len(payload) < length:
+            self.get_logger().warn(f'Truncated payload: expected {length}, got {len(payload)}')
+            return
+        
+        payload = payload[:length]
+        
+        if ptype == MAGIC_HELLO:
+            self._handle_hello(payload, addr)
+            return 
+        
+        if self.session_id == 0:
+            self.get_logger().warn(f'No session — dropping packet type 0x{ptype:02X}')
+            return
+        
+        ip, port = addr
+        
+        if ip != self.client_id:
+            self.get_logger().warn(f'Packet from unknown source {ip} — ignoring')
+            return 
+        
+        if len(payload) < 4:
+            self.get_logger().warn('Payload too short for session_id')
+            return
+        
+        rx_session = struct.unpack_from('>I', payload, 0)[0]
+        
+        if rx_session != self.session_id:
+            self.get_logger().warn(f'Session ID mismatch: got {rx_session:#010x}')
+            return
+        
+        if ptype == MAGIC_HEARTBEAT:
+            self.prev_heartbeat = now
+        elif ptype == MAGIC_WAYPOINT_BATCH:
+            self._parse_waypoints(payload)
+        elif ptype == MAGIC_WAYPOINT_UPDATE:
+            self._parse_update_wp(payload)
+        elif ptype == MAGIC_RETURN:
+            self._parse_return(payload)
+        elif ptype == MAGIC_ESTOP:
+            self._parse_estop()
+        elif ptype == MAGIC_GRIPPER:
+            self._parse_gripper()
+        elif ptype == MAGIC_GOODBYE:
+            self.get_logger().info('Client sent GOODBYE — dropping session')
+            self._drop_session()
         else:
-            self.get_logger().warn(f'Unknown magic byte: {hex(magic)}')
-            return False
+            self.get_logger().warn(f'Unknown packet type: 0x{ptype:02X}')
+            
+    def _handle_hello(self, payload, addr):
+        if len(payload) < 5:
+            self.get_logger().warn('Hello payload too short')
+            return 
+        
+        version = payload[0]
+        client_id = struct.unpack_from('>I', payload, 1)[0]
+        
+        if version != PROTOCOL_VERSION:
+            self.get_logger().warn(f'Protocol version mismatch: got {version}')
+            self._send_hello_response(addr, session_id = 0, status = STATUS_REJECT)
+            return 
+        
+        if self.session_id != 0 and addr[0] != self.client_ip:
+            self.get_logger().warn('Session already active — rejecting new HELLO')
+            self._send_hello_response(addr, session_id = 0, status = STATUS_REJECT)
+            return 
+        
+        self.session_id = client_id & 0xFFFFFFFF
+        self.client_ip = addr[0]
+        self.client_port = addr[1]
+        self.prev_heartbeat = time.monotonic()
+        
+        self._send_hello_response(addr, self.session_id, status = STATUS_OK)
+        
+        target_msg = TargetSetter()
+        target_msg.ip   = self.client_ip
+        target_msg.port = self.client_port
+        self.target_publisher.publish(target_msg)
 
-    def _parse_return(self, data: bytes) -> bool:
-        # [0xCC][flag:1] = 2 bytes
-        if len(data) != 2:
-            self.get_logger().warn(f'Return: expected 2 bytes, got {len(data)}')
-            return False
-
-        msg = Return()
-        msg.flag = bool(data[1])
-        self.return_publisher.publish(msg)
-        self.get_logger().info(f'Return flag = {msg.flag}')
-        return True
-
-    def _parse_gripper(self, data: bytes) -> bool:
-        # [0xDD][open:1] = 2 bytes
-        if len(data) != 2:
-            self.get_logger().warn(f'Gripper: expected 2 bytes, got {len(data)}')
-            return False
-
-        msg = GripperCmd()
-        msg.open = bool(data[1])
-        self.gripper_publisher.publish(msg)
-        self.get_logger().info(f'Gripper open = {msg.open}')
-        return True
-
-    def _parse_edit(self, data: bytes) -> bool:
-        # [0xBB][edited:1][index:4][version:4][x:8][y:8] = 26 bytes
-        if len(data) != 26:
-            self.get_logger().warn(f'Edit: expected 26 bytes, got {len(data)}')
-            return False
-
-        edited = bool(data[1])
-        index, version = struct.unpack_from('<II', data, 2)
-        x, y = struct.unpack_from('<dd', data, 10)
-
-        msg = UpdateWaypoint()
-        msg.edited = edited
-        msg.index = index
-        msg.version = version
-        msg.x = x
-        msg.y = y
-
-        self.update_publisher.publish(msg)
         self.get_logger().info(
-            f'Edit: idx={index}, ver={version}, x={x:.3f}, y={y:.3f}, edited={edited}'
+            f'Session established: {self.client_ip}:{self.client_port} '
+            f'session_id = {self.session_id:#010x}'
         )
-        return True
-
-    def _parse_waypoints(self, data: bytes) -> bool:
-        # [0xAA][count:4][plan_id:4][wp×N: x:8 y:8 each] = 9 + count×16 bytes
-        if len(data) < 9:
-            self.get_logger().warn(f'Waypoint: packet too short ({len(data)} bytes)')
-            return False
-
-        count, plan_id = struct.unpack_from('<ii', data, 1)
-
-        expected = 9 + count * 16
-        if len(data) != expected:
-            self.get_logger().warn(
-                f'Waypoint: size mismatch — expected {expected}, got {len(data)}'
-            )
-            return False
-
+        
+    def _send_hello_response(self, addr, session_id: int, status: int):
+        payload = struct.pack('>IB', session_id, status)
+        header = struct.pack('>BH', MAGIC_HELLO_RESPONSE, len(payload))
+        self.receive_socket.sendto(header + payload, addr)
+        
+    def _drop_session(self):
+        self.session_id = 0
+        self.client_ip = None
+        self.client_port = None
+        self.prev_heartbeat = 0.0
+        
+        terminate = TargetSetter()
+        terminate.ip   = ''
+        terminate.port = 0
+        self.target_publisher.publish(terminate)
+        
+    def _parse_waypoints(self, payload: bytes):
+        if len(payload) < 12:
+            self.get_logger().warn('WAYPOINT_BATCH too short')
+            return 
+        
+        plan_id, count = struct.unpack_from('>II', payload, 4)
+        expected = 12 + count * 17
+        
+        if len(payload) < expected:
+            self.get_logger().warn(f'WAYPOINT_BATCH truncated: expected {expected}, got {len(payload)}')
+            return 
+        
         batch = WaypointBatch()
-        batch.version = plan_id
+        batch.version  = plan_id
         batch.waypoint = []
-
-        offset = 9
+        
+        offset = 12
+        
         for i in range(count):
-            x, y = struct.unpack_from('<dd', data, offset)
-            offset += 16
-
+            x, y = struct.unpack_from('>dd', payload, offset)
+            wp_type = payload[offset + 16]
+            offset += 17
+            
             wp = Waypoint()
             wp.index = i
+            wp.version = plan_id
             wp.x = x
             wp.y = y
-            wp.version = plan_id
+            wp.type = wp_type
             batch.waypoint.append(wp)
-
+            
         self.wp_publisher.publish(batch)
-        self.get_logger().info(
-            f'Waypoints: {count} wps, version={plan_id}'
-        )
-        return True
+        self.get_logger().info(f'WAYPOINT_BATCH: {count} waypoints plan_id={plan_id}')
+        
+    def _parse_update_wp(self, payload: bytes):
+        if len(payload) < 30:
+            self.get_logger().warn(f'UPDATE_WAYPOINT too short: {len(payload)}')
+            return
+        
+        seq = struct.unpack_from('>I', payload, 4)[0]
+        flag = payload[8]
+        index = struct.unpack_from('>I', payload, 9)[0]
+        x, y = struct.unpack_from('>dd', payload, 13)
+        wp_type = payload[29]
+        
+        edit_msg = UpdateWaypoint()
+        edit_msg.edited = bool(flag)
+        edit_msg.index = index
+        edit_msg.x = x
+        edit_msg.y = y
+        edit_msg.type = wp_type 
+        self.update_publisher.publish(edit_msg)
+        self.get_logger().info(f'UPDATE_WAYPOINT: idx={index} seq={seq} x={x:.3f} y={y:.3f} type={wp_type}')
+        
+    def _parse_return(self, payload: bytes):
+        return_msg = Return()
+        return_msg.flag = True
+        self.return_publisher.publish(return_msg)
+        self.get_logger().info('RETURN received')
+        
+    def _parse_estop(self):
+        estop_msg = Estop()
+        estop_msg.data = True
+        self.estop_publisher.publish(estop_msg)
+        self.get_logger().warn('ESTOP received')
+
+    def _parse_gripper(self, payload: bytes):
+        if len(payload) < 5:
+            self.get_logger().warn(f'GRIPPER too short: {len(payload)}')
+            return
+
+        open_cmd = bool(payload[4])
+
+        msg = GripperCmd()
+        msg.open = open_cmd
+        self.gripper_publisher.publish(msg)
+        self.get_logger().info(f'GRIPPER: {"OPEN" if open_cmd else "CLOSE"}')
 
 def main():
     rclpy.init()

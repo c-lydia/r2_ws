@@ -1,10 +1,10 @@
-# System Architecture - Target_Setter_v1.1
+# System Architecture - Target_Setter_v2.0
 
 ## System Diagram
 
-![alt text](image.png)
+![alt text](img/image.png)
 
-Last updated: 2026-05-03 (v1.1)
+Last updated: 2026-05-08 (v2.0)
 
 ## Packages and Nodes
 
@@ -130,9 +130,9 @@ Last updated: 2026-05-03 (v1.1)
 34 directories, 82 files
 ```
 
-## UDP Communication
+## TS-Link Communication
 
-All UDP communication runs between the Android app and the robot over Wi-Fi on port `5050`.
+All TS-Link UDP communication runs between the Android app and the robot over Wi-Fi on port `5050`.
 
 Protocol documentation:
 
@@ -148,6 +148,7 @@ Protocol documentation:
 | UPDATE_WAYPOINT | `/update_wp`   | Edit a waypoint by index           |
 | RETURN          | `/return_flag` | Return to last visited waypoint    |
 | ESTOP           | `/estop`       | Emergency stop                     |
+| GRIPPER         | `/gripper_cmd` | Open/close gripper command         |
 | HEARTBEAT       | —              | Keepalive                          |
 | GOODBYE         | —              | Clean session termination          |
 
@@ -167,22 +168,23 @@ Protocol documentation:
 
 | Topic | Type | Publisher | Subscriber | Description |
 |-------|------|-----------|------------|-------------|
-| `/camera/color/image_raw` | `sensor_msgs/Image` | realsense2_camera | object_detection | RGB frame |
-| `/camera/depth/image_rect_raw` | `sensor_msgs/Image` | realsense2_camera | distance_estimation | Aligned depth frame (uint16, mm) |
-| `/detections` | `robot_interface/DetectionArray` | object_detection | distance_estimation | 2D bounding boxes, no distance |
-| `/detections_3d` | `robot_interface/DetectionArray` | distance_estimation | robot_control, gripper_control | Detections with distance filled |
-| `/imu/data_raw` | `sensor_msgs/Imu` | hfi_a9 | odometry | Raw IMU orientation + angular velocity |
-| `/encoder_feedback` | `robot_interface/EncoderFeedback` | can_driver | odometry | Wheel encoder speed + position |
-| `/current_odom` | `nav_msgs/Odometry` | odometry | mission_planner, udp_sender | Robot pose (x, y, yaw) |
-| `/waypoint` | `robot_interface/WaypointBatch` | udp_listener | mission_planner | Ordered waypoint list |
-| `/update_wp` | `robot_interface/UpdateWaypoint` | udp_listener | mission_planner | In-motion waypoint edit |
-| `/return_flag` | `robot_interface/Return` | udp_listener | mission_planner | Return to last waypoint |
-| `/target_info` | `std_msgs/String` | udp_listener | mission_planner | Target metadata |
-| `/gripper_cmd` | `robot_interface/GripperCmd` | udp_listener | gripper_control | Open/close trigger |
-| `/active_wp` | `robot_interface/Waypoint` | mission_planner | robot_control | Current active waypoint |
-| `/cmd_vel` | `geometry_msgs/Twist` | robot_control, gripper_control | inverse_kinematic | Velocity command (vx, vy, wz) |
-| `/motor_cmd` | `robot_interface/MotorCmd` | inverse_kinematic | can_driver | Per-wheel speed commands |
-| `/solenoid_cmd` | `robot_interface/SolenoidCmd` | gripper_control | can_driver | Gripper open/close signal |
+| `/camera/color/image_raw` | `sensor_msgs/msg/Image` | realsense2_camera | object_detection | RGB frame |
+| `/camera/depth/image_rect_raw` | `sensor_msgs/msg/Image` | realsense2_camera | distance_estimation | Aligned depth frame (uint16, mm) |
+| `/detections` | `robot_interface/msg/DetectionArray` | object_detection | distance_estimation | 2D bounding boxes, no distance |
+| `/detections_3d` | `robot_interface/msg/DetectionArray` | distance_estimation | robot_control, gripper_control | Detections with distance filled |
+| `/imu/data_raw` | `sensor_msgs/msg/Imu` | hfi_a9 | odometry | Raw IMU orientation + angular velocity |
+| `/encoder_feedback` | `robot_interface/msg/EncoderFeedback` | can_driver | odometry | Wheel encoder speed + position |
+| `/current_odom` | `nav_msgs/msg/Odometry` | odometry | mission_planner, udp_sender | Robot pose (x, y, yaw) |
+| `/waypoint` | `robot_interface/msg/WaypointBatch` | udp_listener | mission_planner | Ordered waypoint list |
+| `/update_wp` | `robot_interface/msg/UpdateWaypoint` | udp_listener | mission_planner | In-motion waypoint edit |
+| `/return_flag` | `robot_interface/msg/Return` | udp_listener | mission_planner | Return to last waypoint |
+| `/estop` | `robot_interface/msg/Estop` | udp_listener | robot_control | Emergency stop trigger |
+| `/target_info` | `robot_interface/msg/TargetSetter` | udp_listener | mission_planner | Target metadata |
+| `/gripper_cmd` | `robot_interface/msg/GripperCmd` | udp_listener | gripper_control | Open/close trigger |
+| `/active_wp` | `robot_interface/msg/Waypoint` | mission_planner | robot_control | Current active waypoint |
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | robot_control, gripper_control | inverse_kinematic | Velocity command (vx, vy, wz) |
+| `/motor_cmd` | `robot_interface/msg/MotorCommand` | inverse_kinematic | can_driver | Per-wheel speed commands |
+| `/solenoid_cmd` | `robot_interface/msg/SolenoidCommand` | gripper_control | can_driver | Gripper open/close signal |
 
 ### Messages
 
@@ -247,6 +249,12 @@ float64 y
 
 ``` bash
 bool flag
+```
+
+##### `robot_interface/msg/Estop`
+
+``` bash
+bool estop
 ```
 
 ##### `robot_interface/msg/TargetSetter`

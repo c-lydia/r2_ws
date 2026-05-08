@@ -6,7 +6,7 @@ Implemented in `udp_listener/udp_listener.py`.
 
 ## Overview
 
-![alt text](TS-Link_v1.0_legacy.png)
+![alt text](img/TS-Link_v1.0_legacy.png)
 
 No handshake, no session, no header. Packets are identified purely by length.
 Control is locked to the first IP that sends a valid packet. Lock releases
