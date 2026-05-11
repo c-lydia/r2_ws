@@ -31,7 +31,7 @@ class UdpSender(Node):
         self.sender_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
         self.client_ip = ''
-        self.client_port = 0
+        self.client_port = 5051
         self.session_id = 0
         self.current_odom = None
         self.current_status = None
@@ -52,7 +52,7 @@ class UdpSender(Node):
             self.get_logger().info('Target clearted - sending GOODBYE and dropping session')
             self._send_goodbye()
             self.client_ip = ''
-            self.client_port = 0
+            self.client_port = 5051
             self.session_id = 0
         else:
             self.client_ip = msg.ip

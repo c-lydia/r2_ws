@@ -50,7 +50,7 @@ class UdpListener(Node):
         self.session_id = 0
         self.client_ip = None
         self.client_port = None
-        self.prev_heartbeat = 0.0
+        self.prev_heartbeat = None
 
         self.get_logger().info('UDP Listener initialized on port 5050')
 
@@ -58,9 +58,11 @@ class UdpListener(Node):
         current_time = time.monotonic()
         
         if self.session_id != 0:
-            if current_time - self.prev_heartbeat > HEARTBEAT_TIMEOUT_S:
-                self.get_logger().warn(f'Heartbeat timeout - deopping session')
-                return 
+            if self.prev_heartbeat is not None:
+                if current_time - self.prev_heartbeat > HEARTBEAT_TIMEOUT_S:
+                    self.get_logger().warn('Heartbeat timeout - dropping session')
+                    self._drop_session()
+                    return
             
         try:
             data, addr = self.receive_socket.recvfrom(4096)
@@ -79,7 +81,7 @@ class UdpListener(Node):
         
         ptype = data[0]
         length = struct.unpack_from('>H', data, 1)[0]
-        payload = data[:3]
+        payload = data[3:]
         
         if len(payload) < length:
             self.get_logger().warn(f'Truncated payload: expected {length}, got {len(payload)}')
@@ -88,6 +90,7 @@ class UdpListener(Node):
         payload = payload[:length]
         
         if ptype == MAGIC_HELLO:
+            self.prev_heartbeat = now
             self._handle_hello(payload, addr)
             return 
         
@@ -97,7 +100,7 @@ class UdpListener(Node):
         
         ip, port = addr
         
-        if ip != self.client_id:
+        if ip != self.client_ip:
             self.get_logger().warn(f'Packet from unknown source {ip} — ignoring')
             return 
         
@@ -120,16 +123,16 @@ class UdpListener(Node):
         elif ptype == MAGIC_RETURN:
             self._parse_return(payload)
         elif ptype == MAGIC_ESTOP:
-            self._parse_estop()
+            self._parse_estop(payload)
         elif ptype == MAGIC_GRIPPER:
-            self._parse_gripper()
+            self._parse_gripper(payload)
         elif ptype == MAGIC_GOODBYE:
             self.get_logger().info('Client sent GOODBYE — dropping session')
             self._drop_session()
         else:
             self.get_logger().warn(f'Unknown packet type: 0x{ptype:02X}')
             
-    def _handle_hello(self, payload, addr):
+    def _handle_hello(self, payload, addr):  
         if len(payload) < 5:
             self.get_logger().warn('Hello payload too short')
             return 
@@ -149,14 +152,15 @@ class UdpListener(Node):
         
         self.session_id = client_id & 0xFFFFFFFF
         self.client_ip = addr[0]
-        self.client_port = addr[1]
-        self.prev_heartbeat = time.monotonic()
+        self.client_port = 5051
+        self.prev_heartbeat = None
         
         self._send_hello_response(addr, self.session_id, status = STATUS_OK)
         
         target_msg = TargetSetter()
-        target_msg.ip   = self.client_ip
+        target_msg.ip = self.client_ip
         target_msg.port = self.client_port
+        target_msg.session_id = self.session_id
         self.target_publisher.publish(target_msg)
 
         self.get_logger().info(
@@ -177,7 +181,7 @@ class UdpListener(Node):
         
         terminate = TargetSetter()
         terminate.ip   = ''
-        terminate.port = 0
+        terminate.port = 5051
         self.target_publisher.publish(terminate)
         
     def _parse_waypoints(self, payload: bytes):
@@ -240,7 +244,7 @@ class UdpListener(Node):
         self.return_publisher.publish(return_msg)
         self.get_logger().info('RETURN received')
         
-    def _parse_estop(self):
+    def _parse_estop(self, payload: bytes):
         estop_msg = Estop()
         estop_msg.data = True
         self.estop_publisher.publish(estop_msg)

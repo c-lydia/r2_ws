@@ -61,7 +61,7 @@ class StatusTest(Node):
         self.get_logger().info('Status test publishing to /robot_status')
         
     def wp_cb(self, msg: WaypointBatch):
-        self.total_wp = len(msg.waypoint)
+        self.total_waypoints = len(msg.waypoint)
         self.wp_index = 0
         self.phase_index = 0
         self.phase_tick = 0
@@ -70,24 +70,22 @@ class StatusTest(Node):
     def _return_callback(self, msg: Return):
         if not msg.flag:
             return
-        
-        self.phase_idx = 9
-        self.phase_ticks = 0
+        self.phase_index = 9
+        self.phase_tick = 0
         self.get_logger().info('RETURN received — jumping to RETURN phase')
  
     def _estop_callback(self, msg: Estop):
         if not msg.data:
             return
-        
-        self.phase_idex = 0
+        self.phase_index = 0
         self.phase_tick = 0
         self.wp_index = 0
         self.total_waypoints = 0
         self.get_logger().warn('ESTOP received — resetting to IDLE')
  
     def _gripper_callback(self, msg: GripperCmd):
-        self.phase_idx = 4
-        self.phase_ticks = 0
+        self.phase_index = 4
+        self.phase_tick = 0
         self.get_logger().info(f'GRIPPER {"OPEN" if msg.open else "CLOSE"} received — jumping to gripper sequence')
             
         
@@ -98,24 +96,32 @@ class StatusTest(Node):
         duration, motion, dock, gripper = PHASES[self.phase_index]
         
         if motion == MOTION_NAVIGATE:
-            advanced = self.phase_index//2
-            
-            if advanced < self.total_waypoints - 1:
-                self.wp_index = advanced
+            advanced = self.phase_index // 2
+
+            if self.total_waypoints > 0:
+                if advanced < self.total_waypoints - 1:
+                    self.wp_index = advanced
+                else:
+                    self.wp_index = self.total_waypoints - 1
             else:
-                self.wp_index = self.total_waypoints - 1
+                self.wp_index = 0
                 
         remaining = self.total_waypoints - self.wp_index - 1
-        
         if remaining < 0:
             remaining = 0
             
+        # Clamp values to valid ranges for the message fields
+        if self.wp_index is None or self.wp_index < 0:
+            self.wp_index = 0
+        if self.wp_index > 0xFFFFFFFF:
+            self.wp_index = 0xFFFFFFFF
+
         status_msg = Status()
-        status_msg.motion_state = motion
-        status_msg.dock_state = dock
-        status_msg.gripper_state = gripper
-        status_msg.active_wp_index = self.wp_index
-        status_msg.remaining_count = remaining 
+        status_msg.motion_state = int(motion)
+        status_msg.dock_state = int(dock)
+        status_msg.gripper_state = int(gripper)
+        status_msg.active_wp_index = int(self.wp_index)
+        status_msg.remaining_count = int(remaining)
         
         self.status_test_pub.publish(status_msg)
         
