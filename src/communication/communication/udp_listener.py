@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from robot_interface.msg import TargetSetter, UpdateWaypoint, WaypointBatch, Return, Waypoint, GripperCmd
+from robot_interface.msg import TargetSetter, UpdateWaypoint, WaypointBatch, Return, Waypoint, GripperCmd, Estop 
 import socket
 import struct
 import time
