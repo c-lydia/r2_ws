@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'communication'
+package_name = 'unit_test'
 
 setup(
     name=package_name,
@@ -24,8 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'udp_listener_node = communication.udp_listener:main',
-            'udp_sender_node = communication.udp_sender:main'
+           'odom_test_node = unit_test.odom_test:main',
+           'status_test_node = unit_test.status_test:main'
         ],
     },
 )

@@ -33,6 +33,7 @@ class UdpListener(Node):
         self.update_publisher = self.create_publisher(UpdateWaypoint, '/update_wp', 10)
         self.return_publisher = self.create_publisher(Return, '/return_flag', 10)
         self.gripper_publisher = self.create_publisher(GripperCmd, '/gripper_cmd', 10)
+        self.estop_publisher = self.create_publisher(Estop, '/e_stop', 10)
 
         self.udp_timer = self.create_timer(0.1, self.udp_timer_callback)
 

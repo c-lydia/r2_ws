@@ -1,0 +1,6 @@
+uint32 session_id
+uint8 motion_state
+uint8 dock_state
+uint8 gripper_state
+uint32 active_wp_index
+uint32 remaining_count

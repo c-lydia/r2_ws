@@ -33,6 +33,8 @@ class UdpSender(Node):
         self.client_ip = ''
         self.client_port = 0
         self.session_id = 0
+        self.current_odom = None
+        self.current_status = None
         
         self.get_logger().info(f'UDP sender initialized')
         
@@ -42,10 +44,10 @@ class UdpSender(Node):
         self.current_odom = {
             'x': msg.pose.pose.position.x,
             'y': msg.pose.pose.position.y,
-            'yaw': self.quat_to_yaw(q)
+            'yaw': self._quat_to_yaw(q)
         }
         
-    def _target_callback(self, msg:TargetSetter):
+    def _target_callback(self, msg: TargetSetter):
         if msg.ip == '':
             self.get_logger().info('Target clearted - sending GOODBYE and dropping session')
             self._send_goodbye()
@@ -68,9 +70,9 @@ class UdpSender(Node):
         payload = struct.pack('>ddd', self.current_odom['x'], self.current_odom['y'], self.current_odom['yaw'])
         self._send(MAGIC_ODOMETRY, payload)
         self.get_logger().info(
-            f'ODOMETRY x = {self.current_odom['x']:.3f}, '
-            f'y = {self.current_odom['y']:.3f}, '
-            f'yaw = {self.current_odom['yaw']:.3f}'
+            "ODOMETRY x = {x:.3f}, y = {y:.3f}, yaw = {yaw:.3f}".format(
+                x=self.current_odom['x'], y=self.current_odom['y'], yaw=self.current_odom['yaw']
+            )
         )
         
     def _heartbeat_timer_cb(self):
@@ -82,20 +84,20 @@ class UdpSender(Node):
         self._send(MAGIC_HEARTBEAT, payload)
         self.get_logger().info(f'HEARTBEAT ts = {timestamp_ms}')
         
-    def _status_timer_cb(self, msg: Status):
+    def _status_timer_cb(self):
         if not self._session_active() or self.current_status is None:
-            return 
-        
-        s = self.current_status 
+            return
+
+        s = self.current_status
         payload = struct.pack('>IBBBII', self.session_id, s.motion_state, s.dock_state, s.gripper_state, s.active_wp_index, s.remaining_count)
         self._send(MAGIC_STATUS, payload)
         self.get_logger().info(
-            f'STATUS motion = {s.motion_state}, dock = {s.dock_state}, '
-            f'gripper = {s.gripper_state}, wp = {s.active_wp_index}, remaining = {s.remaining_count}'
+            f"STATUS motion = {s.motion_state}, dock = {s.dock_state}, "
+            f"gripper = {s.gripper_state}, wp = {s.active_wp_index}, remaining = {s.remaining_count}"
         )
         
     def _session_active(self):
-        return self.client_ip != '' and self.client_port != 0 and self.session-id != 0
+        return self.client_ip != '' and self.client_port != 0 and self.session_id != 0
     
     def _send_goodbye(self):
         if not self._session_active():
@@ -106,7 +108,7 @@ class UdpSender(Node):
         self.get_logger().info(f'GOODBYE sent - session id = {self.session_id:#010x}')
         
     def _send(self, ptype: int, payload: bytes):
-        header = struct.pack('BH', ptype, len(payload))
+        header = struct.pack('>BH', ptype, len(payload))
         
         try:
             self.sender_socket.sendto(header + payload, (self.client_ip, self.client_port))
