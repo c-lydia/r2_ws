@@ -91,7 +91,7 @@ class Odometry(Node):
         self.can_driver_subscriber = self.create_subscription(EncoderFeedback, '/encoder_feedback', self._encoder_feedback_callback, 10, callback_group = self._cb_group)
         self.cmd_vel_subscriber = self.create_subscription(Twist, '/cmd_vel', self._cmd_vel_callback, 10, callback_group = self._cb_group)
         self.sensor_imu_subscriber = self.create_subscription(Imu, '/imu/data_raw', self._imu_callback, 10, callback_group = self._cb_group)
-        self.current_odom_publisher = self.create_publisher(OdomMsg, '/current_odom', 10)
+        self.current_odom_publisher = self.create_publisher(OdomMsg, '/odometry', 10)
         
         self.reset_srv = self.create_service(Trigger, '/reset_odometry', self._reset_callback, callback_group = self._cb_group)
         

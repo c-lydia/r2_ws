@@ -7,10 +7,10 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements_common.txt
+COPY requirements_common.txt /workspace/
 RUN pip install --no-cache-dir -r requirements_common.txt
 
-COPY requirements_jetson.txt
+COPY requirements_jetson.txt /workspace/
 RUN pip install --no-cache-dir \
     --index-url https://pypi.ngc.nvidia.com \
     onnxruntime-gpu

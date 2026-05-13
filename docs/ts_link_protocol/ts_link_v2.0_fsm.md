@@ -8,6 +8,8 @@ The robot uses a **hierarchical FSM model** consisting of:
 * Docking FSM (fine-grained manipulation control)
 * Gripper FSM (execution feedback state)
 
+![alt text](image.png)
+
 ## Motion FSM
 
 The Motion FSM controls navigation, idle behavior, return mode, and docking entry.
@@ -20,10 +22,6 @@ The Motion FSM controls navigation, idle behavior, return mode, and docking entr
 | NAVIGATE | 0x01 | Executing waypoint plan        |
 | RETURN   | 0x02 | Returning through visited path |
 | PAUSED   | 0x03 | Temporary halt for docking     |
-
-### Motion State Diagram
-
-*(add image later)*
 
 ### Motion Transitions
 
