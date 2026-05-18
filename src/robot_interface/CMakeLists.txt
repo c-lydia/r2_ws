@@ -35,6 +35,7 @@ set(msg_files
   "msg/Estop.msg"
   "msg/Status.msg"
   "msg/GripperCmd.msg"
+  "msg/GripperJoint.msg"
 )
 
 # Generate interfaces

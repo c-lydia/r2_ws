@@ -16,6 +16,11 @@ GRIPPER_MAX_DIST = 0.5
 GRIPPER_MIN_RAD = 0.0
 GRIPPER_MAX_RAD = math.pi 
 GRIPPER_TIMEOUT_S = 5.0
+NAV_WAYPOINT_TIMEOUT_S = 60.0
+NAV_STUCK_TIMEOUT_S = 5.0
+NAV_STUCK_DIST_M = 0.05
+DOCK_TIMEOUT_S = 30.0 
+DOCK_DIVERGE_MARGIN_M = 0.05 
 
 class MotionState(Enum):
     IDLE = 0
@@ -71,7 +76,7 @@ class MissionPlanner(Node):
         self.odom_subscriber = self.create_subscription(Odometry, '/odometry', self._odom_cb, 10)
         self.distance_subscriber = self.create_subscription(DetectionArray, '/detections_3d', self._detection_cb, 10)
         self.target_subscriber = self.create_subscription(TargetSetter, '/target_info', self._target_cb, 10)
-        self.joint_subscrober = self.create_subscription(GripperJoint, '/gripper_joint', self._joint_cb, 10)
+        self.joint_subscriber = self.create_subscription(GripperJoint, '/gripper_joint', self._joint_cb, 10)
         
         self.active_wp_publisher = self.create_publisher(ActiveWaypoint, '/active_wp', 10)
         self.status_publisher = self.create_publisher(Status, '/robot_status', 10)
@@ -91,6 +96,8 @@ class MissionPlanner(Node):
         self.motion_state = MotionState.IDLE
         self.docking_state = DockingState.NONE
         self.gripper_state = GripperState.IDLE
+        
+        self.pending_gripper_action = GripperState.CLOSE
 
         self.nav_fault = NavFault.NONE
         self.dock_fault = DockFault.NONE
@@ -120,9 +127,18 @@ class MissionPlanner(Node):
         self.wp_version = msg.version
         self.wp_index = 0
         self.history = []
+        
         self.docking_state = DockingState.NONE
         self.gripper_state = GripperState.IDLE
         self.motion_state = MotionState.NAVIGATE
+        
+        self.nav_fault     = NavFault.NONE
+        self.dock_fault    = DockFault.NONE
+        self.gripper_fault = GripperFault.NONE
+        self.fault_origin  = ''
+        
+        self._reset_nav_fault_timers()
+        self.dock_start = None
         
     def _update_wp_cb(self, msg: UpdateWaypoint):
         if not msg.edited:
@@ -166,9 +182,9 @@ class MissionPlanner(Node):
     def _detection_cb(self, msg: DetectionArray):
         for det in msg.detections:
             if det.valid:
-                self.dock_distance = det.distance 
-                self.dock_valid = True 
-                
+                self.prev_dock_distance = self.dock_distance
+                self.dock_distance = det.distance
+                self.dock_valid = True
                 return 
         self.dock_valid = False 
         
@@ -227,8 +243,30 @@ class MissionPlanner(Node):
         dy = active_wp.y - self.current_y
         
         if math.hypot(dx, dy) < ARRIVAL_RADIUS_M:
+            self._reset_nav_fault_timer()
             self._on_arrived(active_wp)
             return
+        
+        if self._nav_wp_timeout():
+            self.nav_fault = NavFault.TIMEOUT 
+            self.fault_origin = 'navigation'
+            self.motion_state = MotionState.FAULT 
+            self.get_logger().error(f'Nav timeout on waypoint {self.wp_index}')
+            return
+        
+        if self._nav_stuck():
+            self.nav_fault = NavFault.STUCK
+            self.fault_origin = 'navigation'
+            self.motion_state = MotionState.FAULT
+            self.get_logger().error(f'Robot stuck at waypoint {self.wp_index}')
+            return 
+        
+        if self.carrying and not self.dock_valid:
+            self.gripper_fault = GripperFault.DROPPED 
+            self.fault_origin = 'gripper'
+            self.motion_state = MotionState.FAULT 
+            self.get_logger().error('Object dropped during transition')
+            return 
         
         self._publish_nav_cmd(active_wp)
         
@@ -265,21 +303,45 @@ class MissionPlanner(Node):
     def _handle_fault(self):
             self._publish_stop()
             self._publish_status()
+            self.get_logger().error(
+                f'FAULT — origin: {self.fault_origin} | '
+                f'nav: {self.nav_fault} | '
+                f'dock: {self.dock_fault} | '
+                f'gripper: {self.gripper_fault}'
+            )
             
     def _handle_none(self):
         self._publish_stop()
         
     def _handle_dock_stable(self):
         if not self.dock_valid:
+            self.dock_start = time.perf_counter()
+            
+        if not self.dock_valid:
             self.dock_fault = DockFault.LOST_TARGET
             self.fault_origin = 'docking'
             self.motion_state = MotionState.FAULT 
+            self.get_logger().error('Docking fault: target lost')
+            return 
+        
+        if (time.perf_counter() - self.dock_start()) > DOCK_TIMEOUT_S:
+            self.dock_fault = DockFault.TIMEOUT 
+            self.fault_origin = 'docking'
+            self.motion_state = MotionState.FAULT 
+            self.get_logger().error('Docking fault: timeout')
+            return 
+        
+        if self.dock_distance > self.prev_dock_distance + DOCK_DIVERGE_MARGIN_M:
+            self.dock_fault = DockFault.DIVERGE
+            self.fault_origin = 'docking'
+            self.motion_state = MotionState.FAULT 
+            self.get_logger().error('Docking fault: diverging from target')
             return 
         
         if self.dock_distance < DOCK_THRESHOLD_M:
-            self.docking_state = DockingState.GRIPPER_READY 
+            self.docking_state = DockingState.GRIPPER_READY
             self._set_gripper_state(GripperState.INITIALIZE)
-            return 
+            return
         
         self._publish_dock_cmd()
         
@@ -291,52 +353,93 @@ class MissionPlanner(Node):
         if abs(self.joint_position - init_position) > 0.01:
             self.joint_cmd = None 
         else:
-            self._set_gripper_state(GripperState.MOVING)
+            self._set_gripper_state(self.pending_gripper_action)
             
     def _handle_moving(self):
         if not self.dock_valid:
-            self.gripper_state = GripperState.UNKNOWN
+            self._set_gripper_state(GripperState.UNKNOWN)
             return
-
+ 
         self.joint_cmd = self._distance_to_joint_angle(self.dock_distance)
-        
+ 
         if self.dock_distance < DOCK_THRESHOLD_M:
-            self._set_gripper_state(GripperState.CLOSE)
-        
+            self._set_gripper_state(self.pending_gripper_action)
+ 
     def _handle_open(self):
         if self._gripper_timeout():
+            self.gripper_fault = GripperFault.TIMEOUT
             self._set_gripper_state(GripperState.UNKNOWN)
-            return 
+            return
         self.joint_cmd = GRIPPER_MAX_RAD
-        
+ 
         if abs(self.joint_position - GRIPPER_MAX_RAD) < 0.05:
             self._complete_docking()
-        
+ 
     def _handle_close(self):
         if self._gripper_timeout():
+            self.gripper_fault = GripperFault.TIMEOUT
             self._set_gripper_state(GripperState.UNKNOWN)
-            return 
+            return
         self.joint_cmd = GRIPPER_MIN_RAD
-        
+ 
         if abs(self.joint_position - GRIPPER_MIN_RAD) < 0.05:
-            self._complete_coking()
-        
+            self._complete_docking()
+ 
     def _handle_unknown(self):
-        self.joint_cmd = self.joint_position 
+        self.joint_cmd = self.joint_position
         self.gripper_fault = GripperFault.NO_FEEDBACK
-        self.fault_origin = 'docking'
-        self.motion_state = MotionState.FAULT 
+        self.fault_origin = 'gripper'
+        self.motion_state = MotionState.FAULT
         
     def _complete_docking(self):
+        wp_type = self.wp[self.wp_index].type 
+        
+        if wp_type == WpType.PICKUP.value:
+            self.carrying = True
+        elif wp_type == WpType.DROPOFF.value:
+            self.carrying = False 
+            
         self.docking_state = DockingState.NONE
+        self.dock_start = None 
         self._set_gripper_state(GripperState.IDLE)
         self._advance_wp()
+        
         if self.motion_state != MotionState.IDLE:
-            self.motion_state = MotionState.NAVIGATE 
+            self.motion_stat = MotionState.NAVIGATE
         
     def _set_gripper_state(self, state: GripperState):
         self.gripper_state = state 
         self.gripper_state_start = None 
+        
+    def _reset_nav_fault_timers(self):
+        self.nav_wp_start = time.perf_counter()
+        self.stuck_check_start = time.perf_counter()
+        self.stuck_snapshot_x = self.current_x
+        self.stuck_snapshot_y = self.current_y
+        
+    def _nav_wp_timeout(self):
+        if self.nav_wp_start is None:
+            self.nav_wp_start = time.perf_counter()
+            return False 
+        return (time.perf_counter() - self.nav_wp_start) > NAV_WAYPOINT_TIMEOUT_S 
+    
+    def _nav_stuck(self):
+        if self.stuck_check_start is None:
+            self.stuck_check_start = time.perf_counter()
+            self.stuck_snapshot_x = self.current_x
+            self.stuck_snapshot_y = self.current_y 
+            return False 
+        
+        if (time.perf_counter() - self.stuck_check_start) < NAV_WAYPOINT_TIMEOUT_S:
+            return False 
+        
+        moved = math.hypot(self.current_x - self.stuck_snapshot_x, self.current_y - self.stuck_snapshot_y)
+        
+        self.stuck_check_start = time.perf_counter()
+        self.stuck_snapshot_x = self.current_x
+        self.stuck_snapshot_y = self.current_y 
+        
+        return moved < NAV_STUCK_DIST_M
         
     def _active_wp_yaw(self, wp_x, wp_y):
         dx = wp_x - self.current_x 
