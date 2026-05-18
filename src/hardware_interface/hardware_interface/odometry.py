@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry  as OdomMsg
 from sensor_msgs.msg import Imu
 from std_srvs.srv import Trigger
 
-from robot_interface.msg import EncoderFeedback 
+from robot_interface.msg import EncoderFeedback, GripperJoint
 from typing import List, Tuple 
 
 WHEEL_RADIUS_M = 0.127/2
@@ -73,6 +73,9 @@ class OdomState:
         self.drive_speed_raw: List[float] = [0.0] * NUM_DRIVE_MOTORS
         self.last_motion_time: float = time.perf_counter()
         
+        self.joint_position = None
+        self.joint_speed = None
+        
     def reset(self) -> None:
         self.__init__()
 
@@ -92,6 +95,7 @@ class Odometry(Node):
         self.cmd_vel_subscriber = self.create_subscription(Twist, '/cmd_vel', self._cmd_vel_callback, 10, callback_group = self._cb_group)
         self.sensor_imu_subscriber = self.create_subscription(Imu, '/imu/data_raw', self._imu_callback, 10, callback_group = self._cb_group)
         self.current_odom_publisher = self.create_publisher(OdomMsg, '/odometry', 10)
+        self.joint_publisher = self.create_publisher(GripperJoint, '/gripper_joint', 10)
         
         self.reset_srv = self.create_service(Trigger, '/reset_odometry', self._reset_callback, callback_group = self._cb_group)
         
@@ -157,7 +161,7 @@ class Odometry(Node):
         if DRIVE_MOTOR_ID_OFFSET <= can_id <= DRIVE_MOTOR_ID_OFFSET + NUM_DRIVE_MOTORS:
             return can_id - DRIVE_MOTOR_ID_OFFSET
         else:
-            self.get_logger().info(f'Unknonw CAN ID: {can_id}')
+            self.get_logger().info(f'Gripper joint: {can_id}')
             
     def _update_motor_state(self, s: OdomState, slot: int, msg: EncoderFeedback) -> None:
         if 0 <= slot < NUM_DRIVE_MOTORS:
@@ -196,6 +200,12 @@ class Odometry(Node):
             
         if s.rotary_received.sum() == 2:
             s.rotary_received[:] = 0
+            
+    def _set_joint_params(self, msg: EncoderFeedback, s: OdomState):
+        if msg.can_id ==105:
+            s.joint_position = msg.position
+            s.joint_speed = msg.speed 
+            self._publish_joint(s.joint_position, s.joint_speed)
     
     def _select_valocity_source(self, s: OdomState):
         return self._forward_kinematics(s.motor_vel)
@@ -257,6 +267,13 @@ class Odometry(Node):
         odom_msg.pose.pose.orientation = yaw_q
         self.current_odom_publisher.publish(odom_msg)
         self.get_logger().info(f'Odom: vel ({vx:.4f}, {vy:.4f}), pos ({x:.4f}, {y:.4f}), yaw: {yaw_q}')
+        
+    def _publish_joint(self, joint_position, joint_speed):
+        joint_msg = GripperJoint()
+        joint_msg.joint_position = joint_position
+        joint_msg.joint_speed = joint_speed
+        self.joint_publisher.publish(joint_msg)
+        self.get_logger().info(f'Gripper joint: position = {joint_position:.4f}, speed = {joint_speed:.4f}')
     
     def _reset_callback(self, request: Trigger.Request, response: Trigger.Response) -> Trigger.Response:
         with self._lock:
