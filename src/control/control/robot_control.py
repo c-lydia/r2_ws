@@ -21,7 +21,7 @@ class RobotControl(Node):
     def __init__(self):
         super().__init__('robot_control_node')
         self.active_wp_sub = self.create_subscription(ActiveWaypoint, '/active_wp', self._active_wp_cb, 10)
-        self.odome_sub = self.create_subscription(Odometry, '/odometry', self._odom_callback, 10)
+        self.odome_sub = self.create_subscription(Odometry, '/odometry_local', self._odom_callback, 10)
         self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.timer = self.create_timer(0.01, self._timer_callback)
         
