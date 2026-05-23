@@ -1,6 +1,7 @@
 import math
 import time
 import threading
+import cv2
 
 import numpy as np
 import rclpy
@@ -14,7 +15,7 @@ from nav_msgs.msg import Odometry as OdomMsg
 from sensor_msgs.msg import Imu
 from std_srvs.srv import Trigger
 
-from robot_interface.msg import EncoderFeedback
+from robot_interface.msg import EncoderFeedback, DetectionArray
 from typing import List, Tuple
 
 WHEEL_RADIUS_M = 0.127 / 2
@@ -101,6 +102,9 @@ class Odometry(Node):
         self.sensor_imu_subscriber = self.create_subscription(
             Imu, '/imu/data_raw', self._imu_callback, 10,
             callback_group=self._cb_group)
+        self.camera_subscriber = self.create_subscription(
+            DetectionArray, '/detections_3d', self._camera_cb, 10
+        )
 
         self.current_odom_publisher = self.create_publisher(OdomMsg, '/odometry', 10)
         self.local_odom_publisher = self.create_publisher(OdomMsg, '/odometry_local', 10)
@@ -141,6 +145,9 @@ class Odometry(Node):
             self._cmd_vx = msg.linear.x
             self._cmd_vy = msg.linear.y
             self._cmd_wz = msg.angular.z
+            
+    def _camera_cb(self, msg: DetectionArray):
+        
 
     def _encoder_feedback_callback(self, msg: EncoderFeedback) -> None:
         with self._lock:
@@ -199,14 +206,12 @@ class Odometry(Node):
             self.get_logger().debug(
                 f'Drive motor CAN {msg.can_id}, idx {idx}, '
                 f'speed {s.motor_vel[idx]:.4f}, pos {msg.position:.4f}')
-
         elif msg.can_id == ROTARY_X_MOTOR_ID:
             s.vx_rotary = ROTARY_RADIUS_M * msg.speed
             if abs(s.vx_rotary) < DEADZONE:
                 s.vx_rotary = 0.0
             s.rotary_received[0] = 1
             self.get_logger().debug(f'Rotary X speed: {s.vx_rotary:.4f}')
-
         elif msg.can_id == ROTARY_Y_MOTOR_ID:
             s.vy_rotary = ROTARY_RADIUS_M * msg.speed
             if abs(s.vy_rotary) < DEADZONE:
@@ -267,6 +272,7 @@ class Odometry(Node):
 
         if s.x_start is None:
             s.x_start = s.x
+            
         if s.y_start is None:
             s.y_start = s.y
 
