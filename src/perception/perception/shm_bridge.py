@@ -7,7 +7,7 @@ Provides zero-copy IPC between:
 """
 
 import numpy as np
-import nmap
+import mmap
 import struct
 import time
 import os
@@ -56,7 +56,7 @@ class ShmFrameWriter:
         self.size = META_SIZE + FRAME_SIZE
 
         self.fd = _ensure_file(self.path, self.size)
-        self.mm = nmap.nmap(self.fd.fileno(), self.size)
+        self.mm = mmap.mmap(self.fd.fileno(), self.size)
 
     def write(self, frame_id: int, img: np.ndarray):
         if img.shape != (FRAME_H, FRAME_W, FRAME_C):
@@ -85,7 +85,7 @@ class ShmFrameReader:
         self.size = META_SIZE + FRAME_SIZE
 
         self.fd = _open_existing(self.path)
-        self.mm = nmap.nmap(self.fd.fileno(), self.size)
+        self.mm = mmap.mmap(self.fd.fileno(), self.size)
 
         self.last_frame_id = -1
 
@@ -122,7 +122,7 @@ class ShmDetWriter:
         self.path = path
 
         self.fd = _ensure_file(self.path, DET_SIZE)
-        self.mm = nmap.nmap(self.fd.fileno(), DET_SIZE)
+        self.mm = mmap.mmap(self.fd.fileno(), DET_SIZE)
 
     def write(self, dets: list):
         """
@@ -158,7 +158,7 @@ class ShmDetReader:
         self.path = path
 
         self.fd = _open_existing(self.path)
-        self.mm = nmap.nmap(self.fd.fileno(), DET_SIZE)
+        self.mm = mmap.mmap(self.fd.fileno(), DET_SIZE)
 
     def read(self):
         self.mm.seek(0)

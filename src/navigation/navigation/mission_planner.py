@@ -4,6 +4,7 @@ from rclpy.node import Node
 from robot_interface.msg import WaypointBatch, UpdateWaypoint, Return, Estop, ActiveWaypoint, Status, DetectionArray, TargetSetter, GripperCmd, EncoderFeedback
 
 from sensor_msgs.msg import Odometry
+from std_msgs.msg import Bool
 
 from enum import Enum
 
@@ -83,6 +84,7 @@ class MissionPlanner(Node):
         self.distance_subscriber = self.create_subscription(DetectionArray, '/detections_3d', self._detection_cb, 10)
         self.target_subscriber = self.create_subscription(TargetSetter, '/target_info', self._target_cb, 10)
         self.joint_feedback_subscriber = self.create_subscription(EncoderFeedback, '/gripper_feedback', self._joint_feedback_cb, 10)
+        self.alignment_subscriber = self.create_subscription(Bool, '/alignment', self.alignment_cb, 10)
 
         self.active_wp_publisher = self.create_publisher(ActiveWaypoint, '/active_wp', 10)
         self.status_publisher = self.create_publisher(Status, '/robot_status', 10)
@@ -131,12 +133,18 @@ class MissionPlanner(Node):
 
         self.carrying = False
         self._pending_update = False
+        self.aligned = False
 
         self.nav_wp_start = None
         self.stuck_check_start = None
         self.stuck_snapshot_x = 0.0
         self.stuck_snapshot_y = 0.0
 
+    def _alignment_cb(self, msg: Bool):
+            self.aligned = msg.data
+            if self.aligned:
+                self.get_logger().info('Alignment complete — ready for waypoints')
+                
     def _waypoint_cb(self, msg: WaypointBatch):
         self.wp = list(msg.waypoint)
         self.wp_version = msg.version

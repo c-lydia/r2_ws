@@ -16,6 +16,7 @@ from sensor_msgs.msg import Imu
 from std_srvs.srv import Trigger
 
 from robot_interface.msg import EncoderFeedback, DetectionArray
+from robot_interface.srv import FieldPose 
 from typing import List, Tuple
 
 WHEEL_RADIUS_M = 0.127 / 2
@@ -77,6 +78,11 @@ class OdomState:
 
         self.joint_position = None
         self.joint_speed = None
+        
+        self.initial_x = 0.0
+        self.initial_y = 0.0
+        self.initial_yaw = 0.0
+        self.aligned = False
 
     def reset(self) -> None:
         self.__init__()
@@ -113,6 +119,7 @@ class Odometry(Node):
         self.reset_srv = self.create_service(
             Trigger, '/reset_odometry', self._reset_callback,
             callback_group=self._cb_group)
+        self.init_pose_srv = self.create_service(FieldPose, '/field_pose', self._init_pose_cb, callback_group = self._cb_group)
 
         self.get_logger().info('CurrentOdometry node initialized')
 
@@ -146,8 +153,25 @@ class Odometry(Node):
             self._cmd_vy = msg.linear.y
             self._cmd_wz = msg.angular.z
             
-    def _camera_cb(self, msg: DetectionArray):
-        
+    def _init_pose_sb(self, request: FieldPose.Request, response: FieldPose.Response):
+        with self._lock:
+            s = self._state 
+            s.initial_x = request.x
+            s.initial_y = request.y
+            s.initial_yaw = request.yaw 
+            s.aligned = True 
+            
+            s.x_start = None
+            s.y_start = None
+            s.previous_time = 0.0
+            
+            response.success = True  
+            response.message = (
+                f'Initial pose set: x = {request.x:.3f} '
+                f'y = {request.y:.3f} yaw = {math.degrees(request.yaw):.1f}deg'
+            )
+            self.get_logger().info(response.message)
+            return response 
 
     def _encoder_feedback_callback(self, msg: EncoderFeedback) -> None:
         with self._lock:
@@ -276,10 +300,11 @@ class Odometry(Node):
         if s.y_start is None:
             s.y_start = s.y
 
-        s.x_odom = s.x - s.x_start
-        s.y_odom = s.y - s.y_start
+        s.x_odom = (s.x - s.x_start) + s.initial_x
+        s.y_odom = (s.y - s.y_start) + s.initial_y
+        s.yaw = self._yaw_to_quaternion(yaw + s.initial_yaw)
 
-        return vx_global, vy_global, s.x_odom, s.y_odom, self._yaw_to_quaternion(yaw)
+        return vx_global, vy_global, s.x_odom, s.y_odom, s.yaw
 
     def _publish_odometry(self, vx: float, vy: float, x: float, y: float, yaw_q: Quaternion) -> None:
         msg = OdomMsg()
@@ -301,7 +326,7 @@ class Odometry(Node):
 
     def _publish_joint(self, joint_position: float, joint_speed: float) -> None:
         msg = EncoderFeedback()
-        msg.can_id = GRIPPER_MOTOR_ID
+        msg.can_id = 105
         msg.position = joint_position
         msg.speed = joint_speed
         self.joint_feedback_publisher.publish(msg)
