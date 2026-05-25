@@ -24,7 +24,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'object_detection_node = perception.object_detection:main'
+            'object_detection_node = perception.object_detection:main',
+            'distance_estimation_node = perception.distance_estimation:main',
+            'field_localization_noe = perception:field_localization:main'
         ],
     },
 )

@@ -1,341 +1,278 @@
 import rclpy
-import cv2
-import numpy as np
-import math
-
-from collections import deque
-from dataclasses import dataclass
-
 from rclpy.node import Node
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
+import math 
+import numpy as np 
 
-from robot_interface.msg import FieldPose
+from robot_interface.srv import FieldPose 
 
-@dataclass
-class CameraConfig:
-    fx = 600.0
-    fy = 600.0
-    
-    cx = 320.0
-    cy = 240.0
-    
-    height_m = 0.30    
-    tilt_deg = 30.0 
+CAM_HEIGHT_M = 0.0
+CAM_PITCH_RAD = 0.0
+CAM_TO_ROBOT_X_M = 0.0
+CAM_IMAGE_HEIGHT_PX = 480
+CAM_IMAGE_WIDTH_PX = 640
 
-@dataclass
-class DetectionConfig:
-    canny_low = 50
-    canny_high = 150
-    hough_rho = 1.0
-    hough_theta = np.pi / 180
-    hough_thresh = 80
-    hough_min_len = 40
-    hough_max_gap = 10
-    line_angle_tol = 20.0
+WALL_MIN_DIST_M = 0.1
+WALL_MAX_DIST_M = 3.0
+STABLE_READING_COUNT = 5
+CLUTTER_STD_TOLERANCE_M = 0.15
+SAMPLE_ROW_FRACTION = 0.75
+SAMPLE_ROW_BAND = 20
 
-@dataclass
-class StabilityConfig:
-    buffer_size = 25
-    required_n = 10
-    std_xy_thresh = 0.15
-    std_yaw_thresh = 0.25
-    min_confidence = 0.7
-
-@dataclass
-class Corner:
-    u: float    
-    v: float
-
-@dataclass
-class PoseEstimate:
-    x: float
-    y: float
-    yaw: float
-    confidence: float
+ROTATION_SPEED_RAD_S = 0.3
+SCAN_SAMPLE_INTERVAL_S = 0.05
+SCAN_COMPLETE_RAD = 2.0 * math.pi
+ 
+WALL_MATCH_TOLERANCE_M = 0.20
+ANGULAR_OPPOSITE_TOL = math.radians(25.0)
+HEADING_BUCKET_DEG = 5.0
 
 class FieldLocalization(Node):
     def __init__(self):
         super().__init__('field_localization_node')
-
-        self.bridge = CvBridge()
-
-        self.cam_cfg = CameraConfig()
-        self.det_cfg = DetectionConfig()
-        self.stab_cfg = StabilityConfig()
-
-        self.buffer = deque(maxlen = self.stab_cfg.buffer_size)
-
-        self.current_depth = None
-        self.published = False
-
-        self.create_subscription(CameraInfo, '/camera/camera_info', self._on_camera_info, 10)
-        self.create_subscription(Image, '/camera/depth/image_raw', self._on_depth, 10)
-        self.create_subscription(Image, '/camera/color/image_raw', self._on_color, 10)
-
-        self._pose_pub = self.create_publisher(FieldPose, '/field_pose', 10)
-        self._debug_pub = self.create_publisher(Image, '/field_pose/debug', 10)
-
-        self.get_logger().info('FieldLocalization node started')
-
-    def _on_camera_info(self, msg: CameraInfo):
-        self.cam_cfg.fx = msg.k[0]
-        self.cam_cfg.fy = msg.k[4]
         
-        self.cam_cfg.cx = msg.k[2]
-        self.cam_cfg.cy = msg.k[5]
-
-    def _on_depth(self, msg: Image):
-        self.current_depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
-
-    def _on_color(self, msg: Image):
-        if self.published:
-            return
-
-        bgr = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        debug = bgr.copy()
-
-        estimate = self._process_frame(bgr, debug)
-
-        if estimate is not None:
-            self.buffer.append(estimate)
-            self._try_publish()
-
-        self._publish_debug(debug)
-
-    def _process_frame(self, bgr, debug):
-        edges = self._edges(bgr)
-        lines = self._detect_lines(edges)
-
-        if lines is None:
-            return None
-
-        h_lines, v_lines = self._classify_lines(lines, debug)
-
-        if not h_lines or not v_lines:
-            return None
-
-        best_h = max(h_lines, key = _line_length)
-        best_v = max(v_lines, key = _line_length)
-
-        self._draw_line(debug, best_h, color=(0, 255, 0))
-        self._draw_line(debug, best_v, color=(0, 0, 255))
+        self._cb_group = ReentrantCallbackGroup()
         
-        corner = _line_intersection(best_h, best_v)
-
-        if corner is None:
-            return None
-
-        h, w = bgr.shape[:2]
-        if not _corner_in_frame(corner, w, h, margin = 20):
-            return None
-
-        self._draw_corner(debug, corner)
-
-        x, y = self._pixel_to_world(corner)
-        yaw = self._estimate_yaw(best_h, best_v)
-        confidence = _corner_confidence(corner, w, h)
-
-        return PoseEstimate(x = x, y = y, yaw = yaw, confidence = confidence)
-
-    def _edges(self, bgr):
-        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        return cv2.Canny(blur, self.det_cfg.canny_low, self.det_cfg.canny_high)
-
-    def _detect_lines(self, edges):
-        return cv2.HoughLinesP(
-            edges,
-            self.det_cfg.hough_rho,
-            self.det_cfg.hough_theta,
-            self.det_cfg.hough_thresh,
-            minLineLength=self.det_cfg.hough_min_len,
-            maxLineGap=self.det_cfg.hough_max_gap
-        )
-
-    def _classify_lines(self, lines, debug):
-        h_lines, v_lines = [], []
-        tol = math.radians(self.det_cfg.line_angle_tol)
-
-        for seg in lines:
-            x1, y1, x2, y2 = seg[0]
-            theta = abs(math.atan2(y2 - y1, x2 - x1))
-
-            cv2.line(debug, (x1, y1), (x2, y2), (100, 200, 0), 1)
-
-            if theta < tol:
-                h_lines.append(seg[0])
-            elif abs(theta - math.pi / 2) < tol:
-                v_lines.append(seg[0])
-
-        return h_lines, v_lines
-
-    def _pixel_to_world(self, corner):
-        tilt = math.radians(self.cam_cfg.tilt_deg)
-
-        if self.current_depth is not None:
-            depth = self._sample_depth(corner)
-
-            if depth is not None and depth > 0.0:
-                x_n = (corner.u - self.cam_cfg.cx) / self.cam_cfg.fx
-                y_n = (corner.v - self.cam_cfg.cy) / self.cam_cfg.fy
-
-                x_cam =  depth * x_n
-                y_cam =  depth * y_n
-                z_cam =  depth
-
-                x_robot =  x_cam
-                y_robot =  z_cam * math.sin(tilt) - y_cam * math.cos(tilt)
-
-                return x_robot, y_robot
-
-        x_n = (corner.u - self.cam_cfg.cx) / self.cam_cfg.fx
-        y_n = (corner.v - self.cam_cfg.cy) / self.cam_cfg.fy
-
-        angle_v = tilt + math.atan(y_n)
-        if abs(angle_v) < 1e-3:
-            return 0.0, 0.0
-
-        forward  = self.cam_cfg.height_m / math.tan(angle_v)
-        lateral  = forward * x_n
-
-        return lateral, forward
-
-    def _sample_depth(self, corner, window = 5):
-        d = self.current_depth
-        h, w = d.shape[:2]
-
-        u = int(round(corner.u))
-        v = int(round(corner.v))
-
-        u0, u1 = max(0, u - window), min(w, u + window + 1)
-        v0, v1 = max(0, v - window), min(h, v + window + 1)
-
-        patch = d[v0:v1, u0:u1].astype(np.float32)
-
-        if patch.max() > 100:
-            patch /= 1000.0
-
-        valid = patch[patch > 0.0]
+        self.declare_parameter('field_width', 3.92)
+        self.declare_parameter('field_height', 4.65)
         
-        if valid.size > 0:
-            return float(np.median(valid))
+        self.field_width = self.get_parameter('field_width').value
+        self.field_height = self.get_parameter('field_height').value 
+        
+        self.cv_bridge = CvBridge()
+        
+        self.depth_image = None
+        self.current_yaw = 0.0
+        self.yaw_start = None
+        self.prev_yaw = None 
+        self.scan_readings = []
+        self.aligned = False 
+        
+        self.depth_subscriber = self.create_subscription(Image, '/camera/image_rect_raw', self._depth_cb, 10)
+        self.odom_subscriber = self.create_subscription(Odometry, '/odometry_local', self._odom_cb, 10)
+        
+        self.cmd_vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.alignment_publisher = self.create_publisher(Bool, '/alignment', 10)
+        
+        self.init_pose_client = self.create_client(FieldPose, '/field_pose', callback_group = self._cb_group)
+        
+        self.scan_timer = self.create_timer(SCAN_SAMPLE_INTERVAL_S, self._scan_cb, callback_group = self._cb_group)
+        
+        self.get_logger().info(f'FieldLocalization node started - field {self.field_width} x {self.field_height}')
+
+    def _depth_cb(self, msg: Image):
+        self.depth_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding = 'passthrough')
+        
+    def _odom_cb(self, msg: Odometry):
+        q = msg.pose.pose.orientation 
+        self.current_yaw = math.atan2(2.0 * (q.w * q.z + q.z * q.y), 1.0 - 2.0 * (q.y**2 + q.z**2))
+        
+    def _scan_cb(self):
+        if self.aligned:
+            return 
+        
+        if self.depth_image is None:
+            self.get_logger().warn('Waiting for depth image ...')
+            return 
+        
+        if not self.init_pose_client.wait_for_service(timeout_sec = 0.1):
+            self.get_logger().warn('Waiting for /field_pose service ....')
+            return 
+        
+        if self.prev_yaw is not None:
+            delta_yaw = self._wrap_yaw(self.current_yaw - self.prev_yaw)
+            self.total_rotation += abs(delta_yaw)
+            
+        self.prev_yaw = self.current_yaw
+        
+        if self.total_rotation >= 2.0 * math.pi:
+            self.scan_completed = True  
+            
+        if not self.scan_completed:
+            self._publish_yaw(ROTATION_SPEED_RAD_S)
+            distance = self._sample_distance()
+            if distance is not None:
+                self.scan_readings.append((self.current_yaw, distance))
         else:
+            self._publish_yaw(0.0)
+            self.get_logger().info(f'Scan completed - {len(self.scan_readings)} readings')
+            self._compute_pose()
+            
+    def _sample_distance(self):
+        if self.depth_image is None:
+            return None 
+        
+        center_row = int(CAM_IMAGE_HEIGHT_PX * SAMPLE_ROW_FRACTION)
+        row_start = max(0, center_row - SAMPLE_ROW_BAND)
+        row_end = min(CAM_IMAGE_HEIGHT_PX, center_row + SAMPLE_ROW_BAND)
+        
+        strip = self.depth_image[row_start:row_end, :]
+        strip_m = strip.astype(np.float32)/1000.0
+        valid = strip_m[(strip_m > WALL_MIN_DIST_M) & (strip_m < WALL_MAX_DIST_M)]
+        
+        if valid.size < STABLE_READING_COUNT:
             return None
-
-    def _estimate_yaw(self, h_line, v_line):
-        x1,  y1,  x2,  y2  = h_line
-        x1v, y1v, x2v, y2v = v_line
-
-        theta_h = math.atan2(y2  - y1,  x2  - x1)
-        theta_v = math.atan2(y2v - y1v, x2v - x1v) - math.pi / 2
-
-        return math.atan2(
-            0.5 * (math.sin(theta_h) + math.sin(theta_v)),
-            0.5 * (math.cos(theta_h) + math.cos(theta_v))
-        )
-
-    def _try_publish(self):
-        cfg = self.stab_cfg
-
-        if len(self.buffer) < cfg.required_n:
+        
+        closest = float(np.min(valid))
+        std = float(np.std(valid))
+        
+        if std > CLUTTER_STD_TOLERANCE_M * 3.0:
+            return None 
+        
+        ground_distance = closest * math.cos(CAM_PITCH_RAD) - CAM_TO_ROBOT_X_M
+        
+        if ground_distance <= 0.0:
+            return None 
+        
+        return ground_distance
+    
+    def _compute_pose(self):
+        if len(self.scan_readings) < 4:
+            self.get_logger().error(f'Not enough scan readings ({len(self.scan_readings)}) - retrying ...')
+            self._retry_scan()
             return
-
-        xs   = []
-        ys   = []
-        yaws = []
-        conf = []
-
-        for p in self.buffer:
-            xs.append(p.x)
-            ys.append(p.y)
-            yaws.append(p.yaw)
-            conf.append(p.confidence)
-
-        xs   = np.array(xs)
-        ys   = np.array(ys)
-        yaws = np.array(yaws)
-        conf = np.array(conf)
-
-        if (np.std(xs)   > cfg.std_xy_thresh or
-                np.std(ys)   > cfg.std_xy_thresh or
-                np.std(yaws) > cfg.std_yaw_thresh):
-            return
-
-        w = conf / np.sum(conf)
-
-        msg = FieldPose()
-        msg.x = float(np.sum(xs * w))
-        msg.y = float(np.sum(ys * w))
-        msg.yaw = math.atan2(
-            float(np.sum(np.sin(yaws) * w)),
-            float(np.sum(np.cos(yaws) * w))
-        )
-        msg.confidence = float(np.mean(conf))
-        msg.valid = True
-
-        self._pose_pub.publish(msg)
-        self.published = True
-
-        self.get_logger().info(
-            f"[FIELD POSE] x={msg.x:.3f}m  y={msg.y:.3f}m  "
-            f"yaw={math.degrees(msg.yaw):.1f}°  conf={msg.confidence:.2f}"
-        )
-
-    def _draw_line(self, img, seg, color):
-        x1, y1, x2, y2 = seg
-        cv2.line(img, (x1, y1), (x2, y2), color, 2)
-
-    def _draw_corner(self, img, corner):
-        pt = (int(corner.u), int(corner.v))
-        cv2.circle(img, pt, 8, (0, 255, 255), -1)
-        cv2.putText(img, f"({corner.u:.0f}, {corner.v:.0f})",
-                    (pt[0] + 10, pt[1] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-
-    def _publish_debug(self, img):
-        self._debug_pub.publish(self.bridge.cv2_to_imgmsg(img, encoding='bgr8'))
-
-def _line_length(seg):
-    return math.hypot(seg[2] - seg[0], seg[3] - seg[1])
-
-def _line_intersection(seg1, seg2):
-    x1, y1, x2, y2 = seg1
-    x3, y3, x4, y4 = seg2
-
-    denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-    if abs(denom) < 1e-6:
-        return None
-
-    t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
-
-    return Corner(
-        u = x1 + t * (x2 - x1),
-        v = y1 + t * (y2 - y1)
-    )
-
-def _corner_in_frame(corner, w, h, margin):
-    if corner.u <= margin or corner.u >= w - margin:
-        return False
-    if corner.v <= margin or corner.v >= h - margin:
-        return False
-    return True
-
-def _corner_confidence(corner, w, h):
-    dist = math.hypot(corner.u - w / 2, corner.v - h / 2)
-    return float(1.0 - dist / math.hypot(w / 2, h / 2))
-
+        
+        x, y, yaw = self._match_wall_pairs()
+        
+        if x is None:
+            self.get_logger().error('Could not match wall pairs - retrying ...')
+            self._retry_scan()
+            return 
+        
+        self.get_logger().info(f'Alignment computed: x = {x:.3f}, y = {y:.3f}, yaw = {math.degrees(yaw):.3f}')
+        
+        request = FieldPose.Request()
+        request.x = x
+        request.y = y
+        request.yaw = yaw
+        
+        future = self.init_pose_client.call_async(request)
+        future.add_done_callback(self._on_pose_set)
+        
+    def _match_wall_pairs(self):
+        bucket_size_rad = math.radians(5.0)
+        num_buckets = int(math.ceil(2.0 * math.pi/bucket_size_rad))
+        
+        for _ in range(num_buckets):
+            buckets = []
+            
+        for yaw, distance in self.scan_readings:
+            yaw_norm = yaw % (2.0 * math.pi)
+            bucket_idx = int(yaw_norm/bucket_size_rad) % num_buckets
+            buckets[bucket_idx].append((yaw, distance))
+            
+        bucket_mins = []
+        
+        for bucket in buckets:
+            if bucket:
+                best = min(bucket, key = lambda r: r[1])
+                bucket_mins.append(best)
+                
+        if len(bucket_mins) < 4:
+            return None, None, None
+        
+        best_x_pair = None
+        best_y_pair = None 
+        
+        best_x_error = float('inf')
+        best_y_error = float('inf')
+        
+        for i in range(len(bucket_mins)):
+            yaw_i, distance_i = bucket_mins[i]
+            
+            for j in range(i + 1, len(bucket_mins)):
+                yaw_j, distance_j = bucket_mins[j]
+                
+                yaw_diff = abs(self._wrap_yaw(yaw_i - yaw_j))
+                
+                if abs(yaw_diff - math.pi) > ANGULAR_OPPOSITE_TOL:
+                    continue
+                
+                pair_sum = distance_i + distance_j 
+                
+                width_error = abs(pair_sum - self.field_width)
+                
+                if width_error < WALL_MATCH_TOLERANCE_M and width_error < best_x_error:
+                    best_x_error = width_error 
+                    best_x_pair = (yaw_i, distance_i, yaw_j, distance_j)
+                    
+                height_error = abs(pair_sum - self.field_height)
+                
+                if height_error < WALL_MATCH_TOLERANCE_M and height_error < best_y_error:
+                    best_y_error = height_error
+                    best_y_pair = (yaw_i, distance_i, yaw_j, distance_j)
+                    
+            if best_x_pair is None or best_y_pair is None:
+                return None, None, None 
+            
+            yaw_x_i, distance_x_i, yaw_x_j, distance_x_j = best_x_pair
+            yaw_y_i, distance_y_i, yaw_y_j, distance_y_j = best_y_pair
+            
+            if abs(self._wrap_yaw(yaw_x_i)) < abs(self._wrap_yaw(yaw_x_j)):
+                x = distance_x_i
+            else:
+                x = self.field_width - distance_x_i
+                
+            if abs(self._wrap_yaw(yaw_y_i - math.pi/2.0)) < abs(self._wrap_yaw(yaw_y_j - math.pi/2.0)):
+                y = distance_y_i 
+            else:
+                y = self.field_height - distance_y_i
+                
+            field_yaw = self._wrap_yaw(yaw_x_i)
+                
+        return float(x), float(y), float(field_yaw)
+        
+    def _on_pose_set(self, future):
+        result = future.result()
+        
+        if result is not None and result.success:
+            self.get_logger().info('Initial pose set - alignment complete')
+            self.aligned = True 
+            
+            msg = Bool()
+            msg.data = True 
+            
+            self.alignment_publisher.publish(msg)
+            self.scan_timer.cancel()
+            
+    def _retry_scan(self):
+        self.total_rotation = 0.0
+        self.prev_yaw = None 
+        self.scan_readings = []
+        
+    def _publish_yaw(self, wz):
+        msg = Twist()
+        msg.angular.z = wz
+        self.cmd_vel_publisher.publish(msg)
+    
+    @staticmethod
+    def _wrap_yaw(yaw):
+        if abs(yaw) > math.pi:
+            if yaw > 0.0:
+                yaw -= 2 * math.pi
+            else :
+                yaw += 2 * math.pi 
+        return yaw 
+    
 def main():
     rclpy.init()
-    node = FieldLocalization()
-
+    field_localization = FieldLocalization()
+    executor = MultiThreadedExecutor
+    executor.add_node(field_localization)
+    
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
-        pass
-
-    node.destroy_node()
-    rclpy.shutdown()
-
+            pass
+    finally:
+        field_localization.destroy_node()
+        rclpy.shutdown()
+        
 if __name__ == '__main__':
     main()
