@@ -24,6 +24,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'can_driver_node = hardware_interface.can_driver:main',
+            'hfi_a9_node = hardware_interface.hfi_a9:main',
+            'inverse_kinematic_node = hardware_interface.inverse_kinematic:main',
+            'odometry_node = hardware_interface.odometry:main'
         ],
     },
 )

@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'gripper_control_node = manipulation.gripper_control:main'
         ],
     },
 )

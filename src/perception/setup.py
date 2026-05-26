@@ -14,7 +14,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='lydia-chheng',
-    maintainer_email='chhenglydiacl@gmail.com',
+    maintainer_emai='chhenglydiacl@gmail.com',
     description='TODO: Package description',
     license='Apache-2.0',
     extras_require={

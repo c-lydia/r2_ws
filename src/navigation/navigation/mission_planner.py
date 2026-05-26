@@ -11,8 +11,8 @@ from enum import Enum
 import math
 import time
 
-ARRIVAL_RADIUS_M = 0.15
-DOCK_THRESHOLD_M = 0.05
+ARRIVAL_RADIUS_M = 0.05
+DOCK_THRESHOLD_M = 0.03
 GRIPPER_MAX_DIST = 0.5
 GRIPPER_MIN_RAD = 0.0
 GRIPPER_MAX_RAD = math.pi
@@ -54,7 +54,6 @@ class NavFault(Enum):
     TIMEOUT = 2
     OBSTACLE = 3
 
-
 class DockFault(Enum):
     NONE = 0
     DIVERGE = 1
@@ -84,8 +83,6 @@ class MissionPlanner(Node):
         self.distance_subscriber = self.create_subscription(DetectionArray, '/detections_3d', self._detection_cb, 10)
         self.target_subscriber = self.create_subscription(TargetSetter, '/target_info', self._target_cb, 10)
         self.joint_feedback_subscriber = self.create_subscription(EncoderFeedback, '/gripper_feedback', self._joint_feedback_cb, 10)
-        self.alignment_subscriber = self.create_subscription(Bool, '/alignment', self.alignment_cb, 10)
-
         self.active_wp_publisher = self.create_publisher(ActiveWaypoint, '/active_wp', 10)
         self.status_publisher = self.create_publisher(Status, '/robot_status', 10)
         self.gripper_cmd_publisher = self.create_publisher(GripperCmd, '/gripper_cmd', 10)
@@ -139,11 +136,6 @@ class MissionPlanner(Node):
         self.stuck_check_start = None
         self.stuck_snapshot_x = 0.0
         self.stuck_snapshot_y = 0.0
-
-    def _alignment_cb(self, msg: Bool):
-            self.aligned = msg.data
-            if self.aligned:
-                self.get_logger().info('Alignment complete — ready for waypoints')
                 
     def _waypoint_cb(self, msg: WaypointBatch):
         self.wp = list(msg.waypoint)
@@ -197,7 +189,7 @@ class MissionPlanner(Node):
         self.current_x = msg.pose.pose.position.x
         self.current_y = msg.pose.pose.position.y
         q = msg.pose.pose.orientation
-        self.current_yaw = self._quat_to_yaw(q)
+        self.current_yaw = self._quat_to_yaw(q) 
 
     def _detection_cb(self, msg: DetectionArray):
         valid = [d for d in msg.detections if d.valid and d.distance > 0]
