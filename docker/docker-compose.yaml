@@ -4,7 +4,7 @@ services:
   perception:
     build:
       context: ..
-      dockerfile: docker/dockerfile
+      dockerfile: docker/Dockerfile
     volumes:
       - /dev/shm:/dev/shm/
       - ../models:/workspace/models

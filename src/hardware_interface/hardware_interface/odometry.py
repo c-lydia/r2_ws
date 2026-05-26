@@ -15,8 +15,7 @@ from nav_msgs.msg import Odometry as OdomMsg
 from sensor_msgs.msg import Imu
 from std_srvs.srv import Trigger
 
-from robot_interface.msg import EncoderFeedback, DetectionArray
-from robot_interface.srv import FieldPose 
+from robot_interface.msg import EncoderFeedback
 from typing import List, Tuple
 
 WHEEL_RADIUS_M = 0.127 / 2
@@ -61,6 +60,7 @@ class OdomState:
         self.prev_imu_yaw_meas = 0.0
         self.yaw_unwrapped: float = 0.0
         self.prev_yaw = None
+        self.yaw = None 
 
         self.previous_time: float = 0.0
 
@@ -78,11 +78,6 @@ class OdomState:
 
         self.joint_position = None
         self.joint_speed = None
-        
-        self.initial_x = 0.0
-        self.initial_y = 0.0
-        self.initial_yaw = 0.0
-        self.aligned = False
 
     def reset(self) -> None:
         self.__init__()
@@ -108,9 +103,6 @@ class Odometry(Node):
         self.sensor_imu_subscriber = self.create_subscription(
             Imu, '/imu/data_raw', self._imu_callback, 10,
             callback_group=self._cb_group)
-        self.camera_subscriber = self.create_subscription(
-            DetectionArray, '/detections_3d', self._camera_cb, 10
-        )
 
         self.current_odom_publisher = self.create_publisher(OdomMsg, '/odometry', 10)
         self.local_odom_publisher = self.create_publisher(OdomMsg, '/odometry_local', 10)
@@ -119,8 +111,7 @@ class Odometry(Node):
         self.reset_srv = self.create_service(
             Trigger, '/reset_odometry', self._reset_callback,
             callback_group=self._cb_group)
-        self.init_pose_srv = self.create_service(FieldPose, '/field_pose', self._init_pose_cb, callback_group = self._cb_group)
-
+        
         self.get_logger().info('CurrentOdometry node initialized')
 
     def _imu_callback(self, msg: Imu) -> None:
@@ -152,26 +143,6 @@ class Odometry(Node):
             self._cmd_vx = msg.linear.x
             self._cmd_vy = msg.linear.y
             self._cmd_wz = msg.angular.z
-            
-    def _init_pose_sb(self, request: FieldPose.Request, response: FieldPose.Response):
-        with self._lock:
-            s = self._state 
-            s.initial_x = request.x
-            s.initial_y = request.y
-            s.initial_yaw = request.yaw 
-            s.aligned = True 
-            
-            s.x_start = None
-            s.y_start = None
-            s.previous_time = 0.0
-            
-            response.success = True  
-            response.message = (
-                f'Initial pose set: x = {request.x:.3f} '
-                f'y = {request.y:.3f} yaw = {math.degrees(request.yaw):.1f}deg'
-            )
-            self.get_logger().info(response.message)
-            return response 
 
     def _encoder_feedback_callback(self, msg: EncoderFeedback) -> None:
         with self._lock:
@@ -300,9 +271,9 @@ class Odometry(Node):
         if s.y_start is None:
             s.y_start = s.y
 
-        s.x_odom = (s.x - s.x_start) + s.initial_x
-        s.y_odom = (s.y - s.y_start) + s.initial_y
-        s.yaw = self._yaw_to_quaternion(yaw + s.initial_yaw)
+        s.x_odom = s.x - s.x_start
+        s.y_odom = s.y - s.y_start
+        s.yaw = self._yaw_to_quaternion(yaw)
 
         return vx_global, vy_global, s.x_odom, s.y_odom, s.yaw
 

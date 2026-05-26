@@ -10,7 +10,7 @@ def generate_launch_description():
             name = 'udp_listener_node'
         ),
         Node(
-            package = 'communication',
+            pacakge = 'communication',
             namespace = 'sender',
             executable = 'udp_sender_node',
             name = 'udp_sender_node'
@@ -28,7 +28,7 @@ def generate_launch_description():
             name = 'hfi_a9_node'
         ),
         Node(
-            pacakge = 'hardware_interface',
+            package = 'hardware_interface',
             namespace = 'inverse_kinematic',
             executable = 'inverse_kinematic_node',
             name = 'inverse_kinematic_node'
@@ -40,28 +40,10 @@ def generate_launch_description():
             name = 'odometry_node'
         ),
         Node(
-            package = 'manipulation',
-            namespace = 'gripper_control',
-            executable = 'gripper_control_node',
-            name = 'gripper_control_node'
-        ),
-        Node(
             package = 'navigation',
             namespace = 'mission_planner',
             executable = 'mission_planner_node',
             name = 'mission_planner_node'
-        ),
-        Node(
-            package = 'perception',
-            namespace = 'distance_estimation',
-            executable = 'distance_estimation_node',
-            name = 'distance_estimation_node'
-        ),
-        Node(
-            package = 'perception',
-            namespace = 'object_detection',
-            executable = 'object_detection_node',
-            name = 'object_detection_node'
         ),
         Node(
             package = 'control',

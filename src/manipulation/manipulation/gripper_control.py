@@ -3,6 +3,14 @@ from rclpy.node import Node
 
 from robot_interface.msg import GripperCmd, GripperJoint, MotorCommand, DigitalAndSolenoidCommand, EncoderFeedback
 
+import math 
+
+GRIPPER_CMD_MAX = math.pi/2.0
+GRIPPER_CMD_MIN = 0.0
+
+MAX_SPEED = 1.0
+A_MAX = 20.0
+
 class GripperControl(Node):
     def __init__(self):
         super().__init__('gripper_control_node')
@@ -15,6 +23,12 @@ class GripperControl(Node):
         self.solenoid_publisher = self.create_publisher(DigitalAndSolenoidCommand, '/solenoid', 10)
         
         self.timer = self.create_timer(0.01, self._timer_cb)
+        
+        self.open = False  
+        
+        self.desired_angle = None 
+        self.current_position = None 
+        self.prev_time = None 
         
     def _gripper_cb(self, msg: GripperCmd):
         self.open = msg.open 
@@ -56,7 +70,7 @@ class GripperControl(Node):
     def _publish_motor(self):
         motor_msg = MotorCommand()
         motor_msg.can_id = 105
-        motor_msg.speedode  = True
+        motor_msg.speedmode  = True
         motor_msg.goal = self.motor_speed
         self.gripper_motor_publisher.publish(motor_msg)
         
