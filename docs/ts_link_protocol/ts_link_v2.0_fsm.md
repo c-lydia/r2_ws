@@ -22,6 +22,7 @@ The Motion FSM controls navigation, idle behavior, return mode, and docking entr
 | NAVIGATE | 0x01 | Executing waypoint plan        |
 | RETURN   | 0x02 | Returning through visited path |
 | PAUSED   | 0x03 | Temporary halt for docking     |
+| FAULT    | 0x04 | Fault condition (navigation/estop)
 
 ### Motion Transitions
 
@@ -52,7 +53,8 @@ motion_state == PAUSED
 | NONE           | 0x00 | No docking active                                |
 | DOCK_STABLE    | 0x04 | Robot aligned and stable                         |
 | GRIPPER_READY  | 0x05 | Safe to trigger gripper interaction              |
-| GRIPPER_DIALOG | 0x06 | App UI interaction trigger (user decision phase) |
+
+> Note: `GRIPPER_DIALOG` is not implemented in the current `mission_planner.py` DockingState enum; docking is represented by `DOCK_STABLE` and `GRIPPER_READY` only.
 
 > Note: EXECUTING is not exposed externally; it is covered by GRIPPER_STATE.
 
@@ -75,12 +77,11 @@ This FSM reflects the **real-time gripper status shown in the app UI**.
 | State      | Code | Description           |
 | ---------- | ---- | --------------------- |
 | INITIALIZE | 0x00 | Starting up / reset   |
-| LIFTING    | 0x01 | Mechanical lift phase |
+| MOVING     | 0x01 | Mechanical move/act   |
 | OPEN       | 0x02 | Gripper open          |
 | CLOSE      | 0x03 | Gripper closed        |
-| DROPPING   | 0x04 | Release phase         |
-| IDLE       | 0x05 | Stable idle state     |
-| UNKNOWN    | 0x06 | Fault / undefined     |
+| IDLE       | 0x04 | Stable idle state     |
+| UNKNOWN    | 0x05 | Fault / undefined     |
 
 ## State Interaction Rules
 

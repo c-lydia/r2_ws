@@ -152,7 +152,7 @@ Each module is independently testable and replaceable.
 
 - Make sure the `custom_messages` package is inside `~/ros2_ws/src` and run `colcon build` again before sourcing.
 
-For technical insight, please read [CHANGELOG](CHANGELOG.md), [development_notes](docs/development_notes.md), [system_architecture](docs/system_architecture.md), and [TS-Link protocol](docs/ts_link_protocol/ts_link_v2.0.md)
+For technical insight, please read the documentation in [docs/index.md](docs/index.md) and these key pages: [CHANGELOG](CHANGELOG.md), [development_notes](docs/development_notes.md), [system_architecture](docs/system_architecture.md), and [TS-Link protocol](docs/ts_link_protocol/ts_link_v2.0.md)
 
 ## Known Issues
 

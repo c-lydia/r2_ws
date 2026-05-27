@@ -4,7 +4,6 @@ from rclpy.node import Node
 from robot_interface.msg import WaypointBatch, UpdateWaypoint, Return, Estop, ActiveWaypoint, Status, DetectionArray, TargetSetter, GripperCmd, EncoderFeedback
 
 from sensor_msgs.msg import Odometry
-from std_msgs.msg import Bool
 
 from enum import Enum
 
